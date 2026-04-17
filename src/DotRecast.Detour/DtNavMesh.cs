@@ -1534,6 +1534,35 @@ namespace DotRecast.Detour
             return null != m_nextFree;
         }
 
+        public void Release()
+        {
+            if (m_tiles != null)
+            {
+                for (int i = 0; i < m_tiles.Length; ++i)
+                {
+                    var tile = m_tiles[i];
+                    if (tile == null)
+                        continue;
+
+                    tile.data  = null;
+                    tile.links = null;
+                    tile.next  = null;
+                }
+            }
+
+            m_posLookup = null;
+            m_nextFree  = null;
+            m_tiles     = null;
+            m_maxTiles  = 0;
+            m_tileLutSize = 0;
+            m_tileLutMask = 0;
+            m_maxVertPerPoly = 0;
+            m_tileWidth  = 0;
+            m_tileHeight = 0;
+            m_orig       = RcVec3f.Zero;
+            m_params     = default;
+        }
+
         /// @{
         /// @name State Management
         /// These functions do not effect #dtTileRef or #dtPolyRef's. 

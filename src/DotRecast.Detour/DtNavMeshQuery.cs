@@ -2883,7 +2883,7 @@ namespace DotRecast.Detour
 
             // Validate input
             if (!m_nav.IsValidPolyRef(startRef) || 
-                null == verts || nverts < 3 || 
+                verts.IsEmpty || nverts < 3 || 
                 null == filter || maxResult < 0)
             {
                 return DtStatus.DT_FAILURE | DtStatus.DT_INVALID_PARAM;
@@ -3343,7 +3343,7 @@ namespace DotRecast.Detour
             Span<DtSegInterval> ints = stackalloc DtSegInterval[MAX_INTERVAL];
             int nints;
 
-            bool storePortals = segmentRefs != null;
+            bool storePortals = !segmentRefs.IsEmpty;
 
             status = DtStatus.DT_SUCCESS;
 
@@ -3398,7 +3398,7 @@ namespace DotRecast.Detour
                         seg.vmin = tile.data.verts.ToVec3(ivj);
                         seg.vmax = tile.data.verts.ToVec3(ivi);
                         segmentVerts[n] = seg;
-                        if (null != segmentRefs)
+                        if (storePortals)
                         {
                             segmentRefs[n] = neiRef;
                         }
@@ -3435,7 +3435,7 @@ namespace DotRecast.Detour
                             seg.vmax = RcVec.Lerp(tile.data.verts, vj, vi, tmax);
                             segmentVerts[n] = seg;
 
-                            if (null != segmentRefs)
+                            if (storePortals)
                             {
                                 segmentRefs[n] = ints[k].refs;
                             }
@@ -3463,7 +3463,7 @@ namespace DotRecast.Detour
                             seg.vmax = RcVec.Lerp(tile.data.verts, vj, vi, tmax);
                             segmentVerts[n] = seg;
 
-                            if (null != segmentRefs)
+                            if (storePortals)
                             {
                                 segmentRefs[n] = 0;
                             }
