@@ -49,7 +49,7 @@ namespace DotRecast.Core.Numerics
             return X == other.X && Y == other.Y && Z == other.Z;
         }
 
-        public override bool Equals(object? obj) // null 허용 확인
+        public override bool Equals(object obj)
         {
             return obj is RcVec3i other && Equals(other);
         }

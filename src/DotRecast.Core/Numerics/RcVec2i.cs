@@ -45,7 +45,7 @@ namespace DotRecast.Core.Numerics
             return X == other.X && Y == other.Y;
         }
 
-        public override bool Equals(object? obj)
+        public override bool Equals(object obj)
         {
             return obj is RcVec2i other && Equals(other);
         }
