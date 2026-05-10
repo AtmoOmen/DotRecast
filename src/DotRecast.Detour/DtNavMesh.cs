@@ -979,7 +979,7 @@ namespace DotRecast.Detour
                     Z = con.rad,
                 };
 
-                // Find polygon to connect to.
+                // Find polygon to connect to (start side).
                 var refs = FindNearestPolyInTile(tile, con.pos[0], ext, out var nearestPt);
                 if (refs == 0)
                 {
@@ -999,7 +999,7 @@ namespace DotRecast.Detour
                 tile.data.verts[poly.verts[0] * 3 + 1] = nearestPt.Y;
                 tile.data.verts[poly.verts[0] * 3 + 2] = nearestPt.Z;
 
-                // Link off-mesh connection to target poly.
+                // Link off-mesh connection to start poly (edge 0).
                 int idx = AllocLink(tile);
                 DtLink link = tile.links[idx];
                 link.refs = refs;
@@ -1010,7 +1010,7 @@ namespace DotRecast.Detour
                 link.next = poly.firstLink;
                 poly.firstLink = idx;
 
-                // Start end-point is always connect back to off-mesh connection.
+                // Start poly back to off-mesh connection (edge 0xff).
                 int tidx = AllocLink(tile);
                 int landPolyIdx = DecodePolyIdPoly(refs);
                 DtPoly landPoly = tile.data.polys[landPolyIdx];
@@ -1022,6 +1022,45 @@ namespace DotRecast.Detour
                 // Add to linked list.
                 link.next = landPoly.firstLink;
                 landPoly.firstLink = tidx;
+
+                // Edge 1: link off-mesh to destination poly for same-tile connections.
+                if (con.side == 0xff)
+                {
+                    var endRefs = FindNearestPolyInTile(tile, con.pos[1], ext, out var endNearestPt);
+                    if (endRefs != 0
+                        && RcMath.Sqr(endNearestPt.X - p[1].X) + RcMath.Sqr(endNearestPt.Z - p[1].Z) <= RcMath.Sqr(con.rad))
+                    {
+                        tile.data.verts[poly.verts[1] * 3]     = endNearestPt.X;
+                        tile.data.verts[poly.verts[1] * 3 + 1] = endNearestPt.Y;
+                        tile.data.verts[poly.verts[1] * 3 + 2] = endNearestPt.Z;
+
+                        int eidx = AllocLink(tile);
+                        if (eidx != DT_NULL_LINK)
+                        {
+                            link = tile.links[eidx];
+                            link.refs = endRefs;
+                            link.edge = 1;
+                            link.side = 0xff;
+                            link.bmin = link.bmax = 0;
+                            link.next = poly.firstLink;
+                            poly.firstLink = eidx;
+
+                            int endLandPolyIdx = DecodePolyIdPoly(endRefs);
+                            DtPoly endLandPoly = tile.data.polys[endLandPolyIdx];
+                            int ridx = AllocLink(tile);
+                            if (ridx != DT_NULL_LINK)
+                            {
+                                link = tile.links[ridx];
+                                link.refs = @base | (long)con.poly;
+                                link.edge = 0xff;
+                                link.side = 0xff;
+                                link.bmin = link.bmax = 0;
+                                link.next = endLandPoly.firstLink;
+                                endLandPoly.firstLink = ridx;
+                            }
+                        }
+                    }
+                }
             }
         }
 
