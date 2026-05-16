@@ -848,6 +848,22 @@ namespace DotRecast.Detour
         ///
         public DtStatus FindPath(long startRef, long endRef, RcVec3f startPos, RcVec3f endPos, IDtQueryFilter filter, Span<long> path, out int pathCount, int maxPath)
         {
+            return FindPath(startRef, endRef, startPos, endPos, filter, path, out pathCount, maxPath, DtFindPathOption.NoOption);
+        }
+
+        public DtStatus FindPath
+        (
+            long             startRef,
+            long             endRef,
+            RcVec3f          startPos,
+            RcVec3f          endPos,
+            IDtQueryFilter   filter,
+            Span<long>       path,
+            out int          pathCount,
+            int              maxPath,
+            DtFindPathOption option
+        )
+        {
             pathCount = 0;
 
             // Validate input
@@ -871,7 +887,7 @@ namespace DotRecast.Detour
             startNode.pos = startPos;
             startNode.pidx = 0;
             startNode.cost = 0;
-            startNode.total = RcVec3f.Distance(startPos, endPos) * DtDefaultQueryHeuristic.H_SCALE;
+            startNode.total = option.heuristic.GetCost(startPos, endPos);
             startNode.id = startRef;
             startNode.flags = DtNodeFlags.DT_NODE_OPEN;
             m_openList.Push(startNode);
@@ -982,7 +998,7 @@ namespace DotRecast.Detour
                             bestRef, bestTile, bestPoly,
                             neighbourRef, neighbourTile, neighbourPoly);
                         cost = bestNode.cost + curCost;
-                        heuristic = RcVec3f.Distance(neighbourNode.pos, endPos) * DtDefaultQueryHeuristic.H_SCALE;
+                        heuristic = option.heuristic.GetCost(neighbourNode.pos, endPos);
                     }
 
                     float total = cost + heuristic;
@@ -1056,6 +1072,20 @@ namespace DotRecast.Detour
         /// @returns The status flags for the query.
         public DtStatus InitSlicedFindPath(long startRef, long endRef, RcVec3f startPos, RcVec3f endPos, IDtQueryFilter filter, int options)
         {
+            var raycastLimit = (options & DtFindPathOptions.DT_FINDPATH_ANY_ANGLE) != 0 ? float.MaxValue : 0;
+            return InitSlicedFindPath(startRef, endRef, startPos, endPos, filter, new DtFindPathOption(DtDefaultQueryHeuristic.Default, options, raycastLimit));
+        }
+
+        public DtStatus InitSlicedFindPath
+        (
+            long             startRef,
+            long             endRef,
+            RcVec3f          startPos,
+            RcVec3f          endPos,
+            IDtQueryFilter   filter,
+            DtFindPathOption option
+        )
+        {
             // Init path state.
             m_query = new DtQueryData();
             m_query.status = DtStatus.DT_FAILURE;
@@ -1064,7 +1094,8 @@ namespace DotRecast.Detour
             m_query.startPos = startPos;
             m_query.endPos = endPos;
             m_query.filter = filter;
-            m_query.options = options;
+            m_query.heuristic = option.heuristic;
+            m_query.options = option.options;
             m_query.raycastLimitSqr = float.MaxValue;
 
             // Validate input
@@ -1074,13 +1105,15 @@ namespace DotRecast.Detour
             }
 
             // trade quality with performance?
-            if ((options & DtFindPathOptions.DT_FINDPATH_ANY_ANGLE) != 0)
+            if ((option.options & DtFindPathOptions.DT_FINDPATH_ANY_ANGLE) != 0)
             {
                 // limiting to several times the character radius yields nice results. It is not sensitive
                 // so it is enough to compute it from the first tile.
                 DtMeshTile tile = m_nav.GetTileByRef(startRef);
                 float agentRadius = tile.data.header.walkableRadius;
-                m_query.raycastLimitSqr = RcMath.Sqr(agentRadius * DT_RAY_CAST_LIMIT_PROPORTIONS);
+                m_query.raycastLimitSqr = option.raycastLimit > 0
+                    ? RcMath.Sqr(option.raycastLimit)
+                    : RcMath.Sqr(agentRadius * DT_RAY_CAST_LIMIT_PROPORTIONS);
             }
 
             if (startRef == endRef)
@@ -1096,7 +1129,7 @@ namespace DotRecast.Detour
             startNode.pos = startPos;
             startNode.pidx = 0;
             startNode.cost = 0;
-            startNode.total = RcVec3f.Distance(startPos, endPos) * DtDefaultQueryHeuristic.H_SCALE;
+            startNode.total = option.heuristic.GetCost(startPos, endPos);
             startNode.id = startRef;
             startNode.flags = DtNodeFlags.DT_NODE_OPEN;
             m_openList.Push(startNode);
@@ -1284,7 +1317,7 @@ namespace DotRecast.Detour
                     }
                     else
                     {
-                        heuristic = RcVec3f.Distance(neighbourNode.pos, m_query.endPos) * DtDefaultQueryHeuristic.H_SCALE;
+                        heuristic = m_query.heuristic.GetCost(neighbourNode.pos, m_query.endPos);
                     }
 
                     float total = cost + heuristic;

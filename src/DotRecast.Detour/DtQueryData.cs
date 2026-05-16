@@ -32,6 +32,7 @@ namespace DotRecast.Detour
         public RcVec3f startPos;
         public RcVec3f endPos;
         public IDtQueryFilter filter;
+        public IDtQueryHeuristic heuristic;
         public int options;
         public float raycastLimitSqr;
     }
