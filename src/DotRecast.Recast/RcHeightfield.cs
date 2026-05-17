@@ -32,11 +32,8 @@ namespace DotRecast.Recast
         public RcVec3f bmax; //< The maximum bounds in world space. [(x, y, z)]
         public readonly float cs; //< The size of each cell. (On the xz-plane.)
         public readonly float ch; //< The height of each cell. (The minimum increment along the y-axis.)
-        public readonly RcSpan[] spans; //< Heightfield of spans (width*height).
-
-        // memory pool for rcSpan instances.
-        public RcSpanPool pools; //< Linked list of span pools.
-        public RcSpan freelist; //< The next free span.
+        public readonly uint[] spans; //< Heightfield of spans (width*height).
+        public readonly RcSpanPool spanPool; //< Actual span storage.
 
         /** Border size in cell units */
         public readonly int borderSize;
@@ -50,7 +47,10 @@ namespace DotRecast.Recast
             this.cs = cs;
             this.ch = ch;
             this.borderSize = borderSize;
-            spans = new RcSpan[width * height];
+            spans = new uint[width * height];
+            spanPool = new RcSpanPool();
         }
+
+        public ref RcSpan Span(uint index) => ref spanPool.Span(index);
     }
 }

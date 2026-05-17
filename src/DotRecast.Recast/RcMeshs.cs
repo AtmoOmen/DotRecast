@@ -1068,7 +1068,7 @@ namespace DotRecast.Recast
                     if ((cont.verts[v + 3] & RC_BORDER_VERTEX) != 0)
                     {
                         // This vertex should be removed.
-                        vflags[indices[j]] = 1;
+                        //vflags[indices[j]] = 1;
                     }
                 }
 

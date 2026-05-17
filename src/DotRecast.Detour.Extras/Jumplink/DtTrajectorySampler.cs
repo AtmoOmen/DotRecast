@@ -65,14 +65,13 @@ namespace DotRecast.Detour.Extras.Jumplink
                 return false;
             }
 
-            RcSpan s = solid.spans[ix + iz * w];
-            if (s == null)
-            {
+            var spanIndex = solid.spans[ix + iz * w];
+            if (spanIndex == 0)
                 return false;
-            }
 
-            while (s != null)
+            while (spanIndex != 0)
             {
+                ref var s = ref solid.Span(spanIndex);
                 float symin = orig.Y + s.smin * ch;
                 float symax = orig.Y + s.smax * ch;
                 if (OverlapRange(ymin, ymax, symin, symax))
@@ -80,7 +79,7 @@ namespace DotRecast.Detour.Extras.Jumplink
                     return true;
                 }
 
-                s = s.next;
+                spanIndex = s.next;
             }
 
             return false;

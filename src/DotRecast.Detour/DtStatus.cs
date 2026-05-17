@@ -18,6 +18,7 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 */
 
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace DotRecast.Detour
@@ -94,6 +95,35 @@ namespace DotRecast.Detour
         public static DtStatus operator &(DtStatus left, DtStatus right)
         {
             return new DtStatus(left.Value & right.Value);
+        }
+
+        public override string ToString()
+        {
+            var thisVal = Value;
+            var statuses = new List<string>();
+
+            void test(string label, DtStatus stat)
+            {
+                if ((thisVal & stat.Value) != 0)
+                    statuses.Add(label);
+            }
+
+            test("FAILURE", DT_FAILURE);
+            test("SUCCESS", DT_SUCCESS);
+            test("IN_PROGRESS", DT_IN_PROGRESS);
+            test("WRONG_MAGIC", DT_WRONG_MAGIC);
+            test("WRONG_VERSION", DT_WRONG_VERSION);
+            test("OOM", DT_OUT_OF_MEMORY);
+            test("INVALID_PARAM", DT_INVALID_PARAM);
+            test("BUFFER_TOO_SMALL", DT_BUFFER_TOO_SMALL);
+            test("OUT_OF_NODES", DT_OUT_OF_NODES);
+            test("PARTIAL_RESULT", DT_PARTIAL_RESULT);
+            test("ALREADY_OCCUPIED", DT_ALREADY_OCCUPIED);
+
+            if (statuses.Count > 0)
+                return string.Join(", ", statuses) + " (" + Value.ToString("X") + ")";
+
+            return $"<none> ({Value:X})";
         }
     }
 }

@@ -200,14 +200,16 @@ namespace DotRecast.Recast
             }
         }
 
-        private static float DistancePtSeg(int x, int z, int px, int pz, int qx, int qz)
+        private static float DistancePtSeg(int x, int y, int z, int px, int py, int pz, int qx, int qy, int qz)
         {
             float pqx = qx - px;
+            float pqy = qy - py;
             float pqz = qz - pz;
             float dx = x - px;
+            float dy = y - py;
             float dz = z - pz;
-            float d = pqx * pqx + pqz * pqz;
-            float t = pqx * dx + pqz * dz;
+            float d = pqx * pqx + pqy * pqy + pqz * pqz;
+            float t = pqx * dx + pqy * dy + pqz * dz;
             if (d > 0)
                 t /= d;
             if (t < 0)
@@ -216,9 +218,10 @@ namespace DotRecast.Recast
                 t = 1;
 
             dx = px + t * pqx - x;
+            dy = py + t * pqy - y;
             dz = pz + t * pqz - z;
 
-            return dx * dx + dz * dz;
+            return dx * dx + dy * dy + dz * dz;
         }
 
         private static void SimplifyContour(List<int> points, List<int> simplified, float maxError, int maxEdgeLen, int buildFlags)
@@ -307,10 +310,12 @@ namespace DotRecast.Recast
                 int ii = (i + 1) % (simplified.Count / 4);
 
                 int ax = simplified[i * 4 + 0];
+                int ay = simplified[i * 4 + 1];
                 int az = simplified[i * 4 + 2];
                 int ai = simplified[i * 4 + 3];
 
                 int bx = simplified[ii * 4 + 0];
+                int by = simplified[ii * 4 + 1];
                 int bz = simplified[ii * 4 + 2];
                 int bi = simplified[ii * 4 + 3];
 
@@ -333,20 +338,17 @@ namespace DotRecast.Recast
                     cinc = pn - 1;
                     ci = (bi + cinc) % pn;
                     endi = ai;
-                    int temp = ax;
-                    ax = bx;
-                    bx = temp;
-                    temp = az;
-                    az = bz;
-                    bz = temp;
+                    (ax, bx) = (bx, ax);
+                    (ay, by) = (by, ay);
+                    (az, bz) = (bz, az);
                 }
 
                 // Tessellate only outer edges or edges between areas.
-                if ((points[ci * 4 + 3] & RC_CONTOUR_REG_MASK) == 0 || (points[ci * 4 + 3] & RC_AREA_BORDER) != 0)
+                //if ((points[ci * 4 + 3] & RC_CONTOUR_REG_MASK) == 0 || (points[ci * 4 + 3] & RC_AREA_BORDER) != 0)
                 {
                     while (ci != endi)
                     {
-                        float d = DistancePtSeg(points[ci * 4 + 0], points[ci * 4 + 2], ax, az, bx, bz);
+                        float d = DistancePtSeg(points[ci * 4 + 0], points[ci * 4 + 1], points[ci * 4 + 2], ax, ay, az, bx, by, bz);
                         if (d > maxd)
                         {
                             maxd = d;
@@ -381,10 +383,12 @@ namespace DotRecast.Recast
                     int ii = (i + 1) % (simplified.Count / 4);
 
                     int ax = simplified[i * 4 + 0];
+                    int ay = simplified[i * 4 + 1];
                     int az = simplified[i * 4 + 2];
                     int ai = simplified[i * 4 + 3];
 
                     int bx = simplified[ii * 4 + 0];
+                    int by = simplified[ii * 4 + 1];
                     int bz = simplified[ii * 4 + 2];
                     int bi = simplified[ii * 4 + 3];
 
@@ -409,8 +413,9 @@ namespace DotRecast.Recast
                     if (tess)
                     {
                         int dx = bx - ax;
+                        int dy = by - ay;
                         int dz = bz - az;
-                        if (dx * dx + dz * dz > maxEdgeLen * maxEdgeLen)
+                        if (dx * dx + dy * dy + dz * dz > maxEdgeLen * maxEdgeLen)
                         {
                             // Round based on the segments in lexilogical order so that the
                             // max tesselation is consistent regardless in which direction

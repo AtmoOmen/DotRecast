@@ -1,10 +1,17 @@
 using System;
+using DotRecast.Core;
 using DotRecast.Core.Numerics;
 
 namespace DotRecast.Detour
 {
     public static class DtUtils
     {
+        public static Action<string, Exception> LogHandler = null;
+
+        public static void Log(string message) => LogHandler?.Invoke(message, null);
+
+        public static void Log(Exception ex, string message) => LogHandler?.Invoke(message, ex);
+
         public static int NextPow2(int v)
         {
             v--;

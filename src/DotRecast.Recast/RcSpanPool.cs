@@ -17,22 +17,50 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 */
 
+using System;
+
 namespace DotRecast.Recast
 {
     /// A memory pool used for quick allocation of spans within a heightfield.
+    /// Index 0 is reserved to mean "null"
     /// @see rcHeightfield
     public class RcSpanPool
     {
-        public RcSpanPool next; //< The next span pool.
-        public readonly RcSpan[] items; //< Array of spans in the pool.
+        private RcSpan[] storage = new RcSpan[64 * 1024];
+        private uint firstUnalloc = 1;
 
         public RcSpanPool()
         {
-            items = new RcSpan[RcRecast.RC_SPANS_PER_POOL];
-            for (int i = 0; i < items.Length; ++i)
+            storage[0].next = firstUnalloc;
+        }
+
+        public ref RcSpan Span(uint index) => ref storage[index];
+
+        public uint Alloc()
+        {
+            uint index = storage[0].next;
+            if (index < firstUnalloc)
             {
-                items[i] = new RcSpan();
+                storage[0].next = storage[index].next;
+                storage[index].next = 0;
+                return index;
             }
+
+            if (storage.Length == firstUnalloc)
+            {
+                var oldStorage = storage;
+                storage = new RcSpan[oldStorage.Length * 2];
+                Array.Copy(oldStorage, storage, oldStorage.Length);
+            }
+
+            storage[0].next = ++firstUnalloc;
+            return index;
+        }
+
+        public void Free(uint index)
+        {
+            storage[index].next = storage[0].next;
+            storage[0].next = index;
         }
     }
 }

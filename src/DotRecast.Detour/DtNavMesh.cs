@@ -43,6 +43,7 @@ namespace DotRecast.Detour
         private DtMeshTile[] m_posLookup; //< Tile hash lookup.
         private DtMeshTile m_nextFree; //< Freelist of tiles.
         private DtMeshTile[] m_tiles; //< List of tiles.
+        public DtOffMeshConnection[] OffMeshConnections;
 
         /** The maximum number of vertices per navigation polygon. */
         private int m_maxVertPerPoly;
@@ -125,7 +126,7 @@ namespace DotRecast.Detour
             return EncodePolyId(tile.salt, it, 0);
         }
 
-        private int AllocLink(DtMeshTile tile)
+        public int AllocLink(DtMeshTile tile)
         {
             if (tile.linksFreeList == DT_NULL_LINK)
                 return DT_NULL_LINK;
@@ -852,6 +853,17 @@ namespace DotRecast.Detour
                     landPoly.firstLink = tidx;
                 }
             }
+        }
+
+        public void ConnectCrossTileLinks()
+        {
+            return; // 真正的 off-mesh connection 会为自己创建新多边形
+#pragma warning disable CS0162
+            if (OffMeshConnections != null && OffMeshConnections.Length > 0)
+            {
+                _ = OffMeshConnections[0];
+            }
+#pragma warning restore CS0162
         }
 
         /// Returns all polygons in neighbour tile based on portal defined by the segment.

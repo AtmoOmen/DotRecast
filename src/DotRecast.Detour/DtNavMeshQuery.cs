@@ -21,6 +21,7 @@ freely, subject to the following restrictions:
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using DotRecast.Core;
 using DotRecast.Core.Collections;
 using DotRecast.Core.Numerics;
@@ -28,6 +29,7 @@ using DotRecast.Core.Numerics;
 namespace DotRecast.Detour
 {
     using static DtDetour;
+    using static DtUtils;
 
     /// Provides the ability to perform pathfinding related queries against
     /// a navigation mesh.
@@ -920,9 +922,11 @@ namespace DotRecast.Detour
                 long parentRef = 0;
                 DtMeshTile parentTile = null;
                 DtPoly parentPoly = null;
+                DtNode parentNode = null;
                 if (bestNode.pidx != 0)
                 {
-                    parentRef = m_nodePool.GetNodeAtIdx(bestNode.pidx).id;
+                    parentNode = m_nodePool.GetNodeAtIdx(bestNode.pidx);
+                    parentRef = parentNode.id;
                 }
 
                 if (parentRef != 0)
@@ -933,6 +937,7 @@ namespace DotRecast.Detour
                 for (int i = bestPoly.firstLink; i != DT_NULL_LINK; i = bestTile.links[i].next)
                 {
                     long neighbourRef = bestTile.links[i].refs;
+                    Log($"current poly={bestPoly.index:X}, neighbor={neighbourRef:X}");
 
                     // Skip invalid ids and do not expand back to where we came from.
                     if (neighbourRef == 0 || neighbourRef == parentRef)
@@ -963,42 +968,83 @@ namespace DotRecast.Detour
                     }
 
                     // If the node is visited the first time, calculate node position.
+                    bool tryLOS = parentRef != 0
+                                  && parentPoly.GetPolyType() != DtPolyTypes.DT_POLYTYPE_OFFMESH_CONNECTION
+                                  && option.raycastLimit > 0
+                                  && RcVec3f.DistanceSquared(parentNode.pos, bestNode.pos) < option.raycastLimit * option.raycastLimit;
+
                     if (neighbourNode.flags == 0)
                     {
-                        GetEdgeMidPoint(bestRef, bestPoly, bestTile,
-                            neighbourRef, neighbourPoly, neighbourTile,
-                            ref neighbourNode.pos);
+                        if (GetEdgeIntersectionPoint(bestNode.pos, bestRef, bestPoly, bestTile,
+                                endPos, neighbourRef, neighbourPoly, neighbourTile,
+                                ref neighbourNode.pos).Failed())
+                        {
+                            return DtStatus.DT_FAILURE;
+                        }
                     }
 
                     // Calculate cost and heuristic.
                     float cost = 0;
                     float heuristic = 0;
+                    bool foundShortCut = false;
 
                     // Special case for last node.
+                    if (tryLOS)
+                    {
+                        var rayHit = new DtRaycastHit();
+                        var grandpaRef = parentNode?.pidx != 0 ? m_nodePool.GetNodeAtIdx(parentNode.pidx).id : 0;
+                        var rayStatus = Raycast(parentRef, parentNode.pos, neighbourNode.pos, filter, DtRaycastOptions.DT_RAYCAST_USE_COSTS, ref rayHit, grandpaRef);
+                        if (rayStatus.Succeeded())
+                        {
+                            Log($"raycast shortcut from {parentRef:X} ({parentNode.pos}) to {neighbourRef:X} t={rayHit.t:f3}; distance {RcVec3f.DistanceSquared(parentNode.pos, bestNode.pos):f3}; neighbor {neighbourNode.pos}");
+                            var pathItems = new List<string>(rayHit.pathCount);
+                            for (int rayPathIndex = 0; rayPathIndex < rayHit.pathCount; rayPathIndex++)
+                            {
+                                pathItems.Add(rayHit.path[rayPathIndex].ToString("X"));
+                            }
+                            var pathStr = string.Join(", ", pathItems);
+                            Log($"shortcut path: {pathStr}");
+                            foundShortCut = rayHit.t >= 1.0f;
+                            if (foundShortCut)
+                            {
+                                cost = parentNode.cost + rayHit.pathCost;
+                            }
+                        }
+                    }
+
                     if (neighbourRef == endRef)
                     {
-                        // Cost
-                        float curCost = filter.GetCost(bestNode.pos, neighbourNode.pos,
-                            parentRef, parentTile, parentPoly,
-                            bestRef, bestTile, bestPoly,
-                            neighbourRef, neighbourTile, neighbourPoly);
+                        float curCost = foundShortCut
+                            ? 0
+                            : filter.GetCost(bestNode.pos, neighbourNode.pos,
+                                parentRef, parentTile, parentPoly,
+                                bestRef, bestTile, bestPoly,
+                                neighbourRef, neighbourTile, neighbourPoly);
                         float endCost = filter.GetCost(neighbourNode.pos, endPos,
                             bestRef, bestTile, bestPoly,
                             neighbourRef, neighbourTile, neighbourPoly,
                             0, null, null);
 
-                        cost = bestNode.cost + curCost + endCost;
+                        cost = foundShortCut ? cost + endCost : bestNode.cost + curCost + endCost;
                         heuristic = 0;
                     }
                     else
                     {
-                        // Cost
-                        float curCost = filter.GetCost(bestNode.pos, neighbourNode.pos,
-                            parentRef, parentTile, parentPoly,
-                            bestRef, bestTile, bestPoly,
-                            neighbourRef, neighbourTile, neighbourPoly);
-                        cost = bestNode.cost + curCost;
+                        if (!foundShortCut)
+                        {
+                            float curCost = filter.GetCost(bestNode.pos, neighbourNode.pos,
+                                parentRef, parentTile, parentPoly,
+                                bestRef, bestTile, bestPoly,
+                                neighbourRef, neighbourTile, neighbourPoly);
+                            cost = bestNode.cost + curCost;
+                        }
+
                         heuristic = option.heuristic.GetCost(neighbourNode.pos, endPos);
+                        if (heuristic < 0)
+                        {
+                            lastBestNode = bestNode;
+                            goto break_outer;
+                        }
                     }
 
                     float total = cost + heuristic;
@@ -1016,9 +1062,14 @@ namespace DotRecast.Detour
                     }
 
                     // Add or update the node.
-                    neighbourNode.pidx = m_nodePool.GetNodeIdx(bestNode);
+                    neighbourNode.pidx = foundShortCut ? bestNode.pidx : m_nodePool.GetNodeIdx(bestNode);
+                    Log($"updating node {neighbourRef:X} with parent ref {m_nodePool.GetNodeAtIdx(neighbourNode.pidx).id:X}");
                     neighbourNode.id = neighbourRef;
                     neighbourNode.flags = (neighbourNode.flags & ~DtNodeFlags.DT_NODE_CLOSED);
+                    if (foundShortCut)
+                        neighbourNode.flags |= DtNodeFlags.DT_NODE_PARENT_DETACHED;
+                    else
+                        neighbourNode.flags &= ~DtNodeFlags.DT_NODE_PARENT_DETACHED;
                     neighbourNode.cost = cost;
                     neighbourNode.total = total;
 
@@ -1043,9 +1094,12 @@ namespace DotRecast.Detour
                 }
             }
 
-            var status = GetPathToNode(lastBestNode, path, out pathCount, maxPath);
+        break_outer:
+
+            var status = GetPathToNode(lastBestNode, path, out pathCount, maxPath, filter);
             if (lastBestNode.id != endRef)
             {
+                Log($"pathfind status is partial: {lastBestNode.id:X} != {endRef:X}");
                 status |= DtStatus.DT_PARTIAL_RESULT;
             }
 
@@ -1701,6 +1755,7 @@ namespace DotRecast.Detour
                 path.IsEmpty || pathSize <= 0 || path[0] == 0
                 || maxStraightPath <= 0)
             {
+                Log("nonsense input to FindStraightPath, doing nothing");
                 return DtStatus.DT_FAILURE | DtStatus.DT_INVALID_PARAM;
             }
 
@@ -1710,12 +1765,14 @@ namespace DotRecast.Detour
             var closestStartPosRes = ClosestPointOnPolyBoundary(path[0], startPos, out var closestStartPos);
             if (closestStartPosRes.Failed())
             {
+                Log($"unable to find closest start point to {path[0]}");
                 return DtStatus.DT_FAILURE | DtStatus.DT_INVALID_PARAM;
             }
 
             var closestEndPosRes = ClosestPointOnPolyBoundary(path[pathSize - 1], endPos, out var closestEndPos);
             if (closestEndPosRes.Failed())
             {
+                Log($"unable to find closest end point to {path[pathSize - 1]}");
                 return DtStatus.DT_FAILURE | DtStatus.DT_INVALID_PARAM;
             }
 
@@ -1755,11 +1812,13 @@ namespace DotRecast.Detour
                         var ppStatus = GetPortalPoints(path[i], path[i + 1], out left, out right, out fromType, out toType);
                         if (ppStatus.Failed())
                         {
+                            Log($"Unable to get portal points from {path[i]} -> {path[i + 1]}: {ppStatus}");
                             // Failed to get portal points, in practice this means that path[i+1] is invalid polygon.
                             // Clamp the end point to path[i], and return the path so far.
                             var cpStatus = ClosestPointOnPolyBoundary(path[i], endPos, out closestEndPos);
                             if (cpStatus.Failed())
                             {
+                                Log($"Unable to find point on poly boundary at {path[i]}");
                                 return DtStatus.DT_FAILURE | DtStatus.DT_INVALID_PARAM;
                             }
 
@@ -2150,6 +2209,7 @@ namespace DotRecast.Detour
             var status = m_nav.GetTileAndPolyByRef(from, out var fromTile, out var fromPoly);
             if (status.Failed())
             {
+                Log($"[PP] Unable to resolve poly ref (from) {from:X}");
                 return DtStatus.DT_FAILURE | DtStatus.DT_INVALID_PARAM;
             }
 
@@ -2158,6 +2218,7 @@ namespace DotRecast.Detour
             status = m_nav.GetTileAndPolyByRef(to, out var toTile, out var toPoly);
             if (status.Failed())
             {
+                Log($"[PP] Unable to resolve poly ref (to) {to:X}");
                 return DtStatus.DT_FAILURE | DtStatus.DT_INVALID_PARAM;
             }
 
@@ -2174,10 +2235,18 @@ namespace DotRecast.Detour
             left = RcVec3f.Zero;
             right = RcVec3f.Zero;
 
+            void dbg(string message)
+            {
+                Log(message);
+            }
+
+            dbg($"portal {from:X} -> {to:X}");
+
             // Find the link that points to the 'to' polygon.
             DtLink link = null;
             for (int i = fromPoly.firstLink; i != DT_NULL_LINK; i = fromTile.links[i].next)
             {
+                dbg($"link idx {i} points to {fromTile.links[i].refs:X}");
                 if (fromTile.links[i].refs == to)
                 {
                     link = fromTile.links[i];
@@ -2187,7 +2256,21 @@ namespace DotRecast.Detour
 
             if (link == null)
             {
+                dbg($"no link from {from:X} to {to:X}");
                 return DtStatus.DT_FAILURE | DtStatus.DT_INVALID_PARAM;
+            }
+
+            if (fromPoly.GetPolyType() == DtPolyTypes.DT_POLYTYPE_OFFMESH_CONNECTION && toPoly.GetPolyType() == DtPolyTypes.DT_POLYTYPE_OFFMESH_CONNECTION)
+            {
+                left.X = toTile.data.verts[toPoly.verts[0] * 3];
+                left.Y = toTile.data.verts[toPoly.verts[0] * 3 + 1];
+                left.Z = toTile.data.verts[toPoly.verts[0] * 3 + 2];
+
+                right.X = toTile.data.verts[toPoly.verts[0] * 3];
+                right.Y = toTile.data.verts[toPoly.verts[0] * 3 + 1];
+                right.Z = toTile.data.verts[toPoly.verts[0] * 3 + 2];
+
+                return DtStatus.DT_SUCCESS;
             }
 
             // Handle off-mesh connections.
@@ -2211,6 +2294,7 @@ namespace DotRecast.Detour
                     }
                 }
 
+                dbg("fallback: from offmesh conn");
                 return DtStatus.DT_FAILURE | DtStatus.DT_INVALID_PARAM;
             }
 
@@ -2233,6 +2317,7 @@ namespace DotRecast.Detour
                     }
                 }
 
+                dbg("fallback: to offmesh conn");
                 return DtStatus.DT_FAILURE | DtStatus.DT_INVALID_PARAM;
             }
 
@@ -3802,8 +3887,70 @@ namespace DotRecast.Detour
         }
 
         // Gets the path leading to the specified end node.
-        protected DtStatus GetPathToNode(DtNode endNode, Span<long> path, out int pathCount, int maxPath)
+        protected DtStatus GetPathToNode(DtNode endNode, Span<long> path, out int pathCount, int maxPath, IDtQueryFilter filter = null)
         {
+            if (filter != null)
+            {
+                DtNode prev = null;
+                DtNode node = endNode;
+                int prevRay = 0;
+                do
+                {
+                    DtNode next = m_nodePool.GetNodeAtIdx(node.pidx);
+                    node.pidx = m_nodePool.GetNodeIdx(prev);
+                    prev = node;
+                    int nextRay = node.flags & DtNodeFlags.DT_NODE_PARENT_DETACHED;
+                    node.flags = (node.flags & ~DtNodeFlags.DT_NODE_PARENT_DETACHED) | prevRay;
+                    prevRay = nextRay;
+                    node = next;
+                }
+                while (null != node);
+
+                int n = 0;
+                node = prev;
+                do
+                {
+                    DtNode next = m_nodePool.GetNodeAtIdx(node.pidx);
+                    DtStatus status = DtStatus.DT_STATUS_NOTHING;
+                    if (next != null)
+                    {
+                        if ((node.flags & DtNodeFlags.DT_NODE_PARENT_DETACHED) != 0)
+                        {
+                            float t;
+                            int m;
+                            status = Raycast(node.id, node.pos, next.pos, filter, out t, out var normal, path.Slice(n), out m, maxPath - n);
+                            n += m;
+                            if (n > 0 && path[n - 1] == next.id)
+                                n--;
+                        }
+                        else
+                        {
+                            path[n++] = node.id;
+                            if (n >= maxPath)
+                                status = DtStatus.DT_BUFFER_TOO_SMALL;
+                        }
+                    }
+                    else
+                    {
+                        path[n++] = node.id;
+                        if (n >= maxPath)
+                            status = DtStatus.DT_BUFFER_TOO_SMALL;
+                    }
+
+                    if (status.Has(DtStatus.DT_STATUS_DETAIL_MASK))
+                    {
+                        pathCount = n;
+                        return DtStatus.DT_SUCCESS | (status & DtStatus.DT_STATUS_DETAIL_MASK);
+                    }
+
+                    node = next;
+                }
+                while (null != node);
+
+                pathCount = n;
+                return DtStatus.DT_SUCCESS;
+            }
+
             // Find the length of the entire path.
             DtNode curNode = endNode;
             int length = 0;

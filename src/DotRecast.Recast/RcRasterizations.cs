@@ -44,64 +44,6 @@ namespace DotRecast.Recast
                 aMin.Z <= bMax.Z && aMax.Z >= bMin.Z;
         }
 
-        /// Allocates a new span in the heightfield.
-        /// Use a memory pool and free list to minimize actual allocations.
-        /// 
-        /// @param[in]	heightfield		The heightfield
-        /// @returns A pointer to the allocated or re-used span memory. 
-        private static RcSpan AllocSpan(RcHeightfield heightfield)
-        {
-            // If necessary, allocate new page and update the freelist.
-            if (heightfield.freelist == null || heightfield.freelist.next == null)
-            {
-                // Create new page.
-                // Allocate memory for the new pool.
-                RcSpanPool spanPool = new RcSpanPool();
-                if (spanPool == null)
-                {
-                    return null;
-                }
-
-                // Add the pool into the list of pools.
-                spanPool.next = heightfield.pools;
-                heightfield.pools = spanPool;
-
-                // Add new spans to the free list.
-                RcSpan freeList = heightfield.freelist;
-                int head = 0;
-                int it = RC_SPANS_PER_POOL;
-                do
-                {
-                    --it;
-                    spanPool.items[it].next = freeList;
-                    freeList = spanPool.items[it];
-                } while (it != head);
-
-                heightfield.freelist = spanPool.items[it];
-            }
-
-            // Pop item from the front of the free list.
-            RcSpan newSpan = heightfield.freelist;
-            heightfield.freelist = heightfield.freelist.next;
-            return newSpan;
-        }
-
-        /// Releases the memory used by the span back to the heightfield, so it can be re-used for new spans.
-        /// @param[in]	heightfield		The heightfield.
-        /// @param[in]	span	A pointer to the span to free
-        private static void FreeSpan(RcHeightfield heightfield, RcSpan span)
-        {
-            if (span == null)
-            {
-                return;
-            }
-
-            // Add the span to the front of the free list.
-            span.next = heightfield.freelist;
-            heightfield.freelist = span;
-        }
-
-
         /// Adds a span to the heightfield.  If the new span overlaps existing spans,
         /// it will merge the new span with the existing ones.
         ///
@@ -115,27 +57,29 @@ namespace DotRecast.Recast
         public static bool AddSpan(RcHeightfield heightfield, int x, int z, int min, int max, int areaID, int flagMergeThreshold)
         {
             // Create the new span.
-            RcSpan newSpan = new RcSpan();
+            uint newSpanIndex = heightfield.spanPool.Alloc();
+            ref RcSpan newSpan = ref heightfield.Span(newSpanIndex);
             newSpan.smin = min;
             newSpan.smax = max;
             newSpan.area = areaID;
-            newSpan.next = null;
+            newSpan.next = 0;
 
             int columnIndex = x + z * heightfield.width;
 
             // Empty cell, add the first span.
-            if (heightfield.spans[columnIndex] == null)
+            if (heightfield.spans[columnIndex] == 0)
             {
-                heightfield.spans[columnIndex] = newSpan;
+                heightfield.spans[columnIndex] = newSpanIndex;
                 return true;
             }
 
-            RcSpan previousSpan = null;
-            RcSpan currentSpan = heightfield.spans[columnIndex];
+            uint previousSpanIndex = 0;
+            uint currentSpanIndex = heightfield.spans[columnIndex];
 
             // Insert the new span, possibly merging it with existing spans.
-            while (currentSpan != null)
+            while (currentSpanIndex != 0)
             {
+                ref var currentSpan = ref heightfield.Span(currentSpanIndex);
                 if (currentSpan.smin > newSpan.smax)
                 {
                     // Current span is further than the new span, break.
@@ -145,8 +89,8 @@ namespace DotRecast.Recast
                 if (currentSpan.smax < newSpan.smin)
                 {
                     // Current span is completely before the new span.  Keep going.
-                    previousSpan = currentSpan;
-                    currentSpan = currentSpan.next;
+                    previousSpanIndex = currentSpanIndex;
+                    currentSpanIndex = currentSpan.next;
                 }
                 else
                 {
@@ -170,31 +114,32 @@ namespace DotRecast.Recast
 
                     // Remove the current span since it's now merged with newSpan.
                     // Keep going because there might be other overlapping spans that also need to be merged.
-                    RcSpan next = currentSpan.next;
-                    if (previousSpan != null)
+                    uint next = currentSpan.next;
+                    if (previousSpanIndex != 0)
                     {
-                        previousSpan.next = next;
+                        heightfield.Span(previousSpanIndex).next = next;
                     }
                     else
                     {
                         heightfield.spans[columnIndex] = next;
                     }
 
-                    currentSpan = next;
+                    heightfield.spanPool.Free(currentSpanIndex);
+                    currentSpanIndex = next;
                 }
             }
 
             // Insert new span after prev
-            if (previousSpan != null)
+            if (previousSpanIndex != 0)
             {
-                newSpan.next = previousSpan.next;
-                previousSpan.next = newSpan;
+                newSpan.next = heightfield.Span(previousSpanIndex).next;
+                heightfield.Span(previousSpanIndex).next = newSpanIndex;
             }
             else
             {
                 // This span should go before the others in the list
                 newSpan.next = heightfield.spans[columnIndex];
-                heightfield.spans[columnIndex] = newSpan;
+                heightfield.spans[columnIndex] = newSpanIndex;
             }
 
             return true;
