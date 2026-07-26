@@ -18,57 +18,57 @@ freely, subject to the following restrictions:
 */
 
 using DotRecast.Core;
-using DotRecast.Core.Numerics;
 
-namespace DotRecast.Detour.Extras.Unity.Astar
+namespace DotRecast.Detour.Extras.Unity.Astar;
+
+public class DtOffMeshLinkCreator
 {
-    public class DtOffMeshLinkCreator
+    public void Build
+    (
+        DtGraphMeshData graphData,
+        DtNodeLink2[]   links,
+        int             nodeOffset
+    )
     {
-        public void Build(DtGraphMeshData graphData, DtNodeLink2[] links, int nodeOffset)
+        if (links.Length > 0)
         {
-            if (links.Length > 0)
+            foreach (var l in links)
             {
-                foreach (DtNodeLink2 l in links)
-                {
-                    DtMeshData startTile = graphData.GetTile(l.startNode - nodeOffset);
-                    DtPoly startNode = graphData.GetNode(l.startNode - nodeOffset);
-                    DtMeshData endTile = graphData.GetTile(l.endNode - nodeOffset);
-                    DtPoly endNode = graphData.GetNode(l.endNode - nodeOffset);
-                    if (startNode != null && endNode != null)
-                    {
-                        // FIXME: Optimise
-                        startTile.polys = RcArrays.CopyOf(startTile.polys, startTile.polys.Length + 1);
-                        int poly = startTile.header.polyCount;
-                        startTile.polys[poly] = new DtPoly(poly, 2);
-                        startTile.polys[poly].verts[0] = startTile.header.vertCount;
-                        startTile.polys[poly].verts[1] = startTile.header.vertCount + 1;
-                        startTile.polys[poly].SetPolyType(DtPolyTypes.DT_POLYTYPE_OFFMESH_CONNECTION);
-                        startTile.verts = RcArrays.CopyOf(startTile.verts, startTile.verts.Length + 6);
-                        startTile.header.polyCount++;
-                        startTile.header.vertCount += 2;
-                        DtOffMeshConnection connection = new DtOffMeshConnection();
-                        connection.poly = poly;
-                        connection.pos =
-                        [
-                            l.clamped1, l.clamped2
-                        ];
-                        connection.rad = 0.1f;
-                        connection.side = startTile == endTile
-                            ? 0xFF
-                            : DtNavMeshBuilder.ClassifyOffMeshPoint(connection.pos[1], startTile.header.bmin, startTile.header.bmax);
-                        connection.userId = (int)l.linkID;
-                        if (startTile.offMeshCons == null)
-                        {
-                            startTile.offMeshCons = new DtOffMeshConnection[1];
-                        }
-                        else
-                        {
-                            startTile.offMeshCons = RcArrays.CopyOf(startTile.offMeshCons, startTile.offMeshCons.Length + 1);
-                        }
+                var startTile = graphData.GetTile(l.startNode - nodeOffset);
+                var startNode = graphData.GetNode(l.startNode - nodeOffset);
+                var endTile   = graphData.GetTile(l.endNode   - nodeOffset);
+                var endNode   = graphData.GetNode(l.endNode   - nodeOffset);
 
-                        startTile.offMeshCons[startTile.offMeshCons.Length - 1] = connection;
-                        startTile.header.offMeshConCount++;
-                    }
+                if (startNode != null && endNode != null)
+                {
+                    // FIXME: Optimise
+                    startTile.polys = RcArrays.CopyOf(startTile.polys, startTile.polys.Length + 1);
+                    var poly = startTile.header.polyCount;
+                    startTile.polys[poly]          = new DtPoly(poly, 2);
+                    startTile.polys[poly].verts[0] = startTile.header.vertCount;
+                    startTile.polys[poly].verts[1] = startTile.header.vertCount + 1;
+                    startTile.polys[poly].SetPolyType(DtPolyTypes.DT_POLYTYPE_OFFMESH_CONNECTION);
+                    startTile.verts = RcArrays.CopyOf(startTile.verts, startTile.verts.Length + 6);
+                    startTile.header.polyCount++;
+                    startTile.header.vertCount += 2;
+                    var connection = new DtOffMeshConnection();
+                    connection.poly = poly;
+                    connection.pos =
+                    [
+                        l.clamped1, l.clamped2
+                    ];
+                    connection.rad = 0.1f;
+                    connection.side = startTile == endTile ?
+                                          0xFF :
+                                          DtNavMeshBuilder.ClassifyOffMeshPoint(connection.pos[1], startTile.header.bmin, startTile.header.bmax);
+                    connection.userId = (int)l.linkID;
+                    if (startTile.offMeshCons == null)
+                        startTile.offMeshCons = new DtOffMeshConnection[1];
+                    else
+                        startTile.offMeshCons = RcArrays.CopyOf(startTile.offMeshCons, startTile.offMeshCons.Length + 1);
+
+                    startTile.offMeshCons[startTile.offMeshCons.Length - 1] = connection;
+                    startTile.header.offMeshConCount++;
                 }
             }
         }

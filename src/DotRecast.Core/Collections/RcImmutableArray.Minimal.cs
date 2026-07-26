@@ -1,19 +1,23 @@
-namespace DotRecast.Core.Collections
+namespace DotRecast.Core.Collections;
+
+public readonly partial struct RcImmutableArray<T>
 {
-    public readonly partial struct RcImmutableArray<T>
-    {
 #pragma warning disable CA1825
-        public static readonly RcImmutableArray<T> Empty = [with([])];
+    public static readonly RcImmutableArray<T> Empty = [with([])];
 #pragma warning restore CA1825
 
-        private readonly T[] _array;
+    private readonly T[] _array;
 
-        internal RcImmutableArray(T[] items)
-        {
-            _array = items;
-        }
+    internal RcImmutableArray
+    (
+        T[] items
+    ) =>
+        _array = items;
 
-        public T this[int index] => _array![index];
-        public int Length => _array!.Length;
-    }
+    public T this
+    [
+        int index
+    ] => _array![index];
+
+    public int Length => _array!.Length;
 }
