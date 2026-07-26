@@ -21,22 +21,25 @@ using System.IO;
 using System.IO.Compression;
 using Newtonsoft.Json;
 
-namespace DotRecast.Detour.Extras.Unity.Astar
-{
-    public class DtGraphMetaReader
-    {
-        public DtGraphMeta Read(ZipArchive file, string filename)
-        {
-            ZipArchiveEntry entry = file.GetEntry(filename);
-            using StreamReader reader = new StreamReader(entry.Open());
+namespace DotRecast.Detour.Extras.Unity.Astar;
 
-            // for unity3d
-            var json = reader.ReadToEnd();
-            return JsonConvert.DeserializeObject<DtGraphMeta>(json);
-            
-            // var settings = new JsonSerializerSettings();
-            // settings.ContractResolver = new CamelCasePropertyNamesContractResolver();
-            //return JsonConvert.DeserializeObject<GraphMeta>(json, settings);
-        }
+public class DtGraphMetaReader
+{
+    public DtGraphMeta Read
+    (
+        ZipArchive file,
+        string     filename
+    )
+    {
+        var       entry  = file.GetEntry(filename);
+        using var reader = new StreamReader(entry.Open());
+
+        // for unity3d
+        var json = reader.ReadToEnd();
+        return JsonConvert.DeserializeObject<DtGraphMeta>(json);
+
+        // var settings = new JsonSerializerSettings();
+        // settings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+        //return JsonConvert.DeserializeObject<GraphMeta>(json, settings);
     }
 }

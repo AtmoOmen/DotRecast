@@ -18,41 +18,42 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 */
 
-using System.Collections.Generic;
 using DotRecast.Core.Numerics;
 
-namespace DotRecast.Detour
+namespace DotRecast.Detour;
+
+public class DtNode
 {
-    public class DtNode
+    public readonly int ptr;
+
+    public RcVec3f pos;   // Position of the node.
+    public float   cost;  // Cost from previous node to current node.
+    public float   total; // Cost up to the node.
+    public int     pidx;  // Index to parent node.
+    public int     state; // extra state information. A polyRef can have multiple nodes with different extra info. see DT_MAX_STATES_PER_NODE
+    public int     flags; // Node flags. A combination of dtNodeFlags.
+    public long    id;    // Polygon ref the node corresponds to.
+    public DtNode  next;
+
+    public DtNode
+    (
+        int ptr
+    ) =>
+        this.ptr = ptr;
+
+    public static int ComparisonNodeTotal
+    (
+        DtNode a,
+        DtNode b
+    )
     {
-        public readonly int ptr;
+        var compare = a.total.CompareTo(b.total);
+        if (0 != compare)
+            return compare;
 
-        public RcVec3f pos; // Position of the node.
-        public float cost; // Cost from previous node to current node.
-        public float total; // Cost up to the node.
-        public int pidx; // Index to parent node.
-        public int state; // extra state information. A polyRef can have multiple nodes with different extra info. see DT_MAX_STATES_PER_NODE
-        public int flags; // Node flags. A combination of dtNodeFlags.
-        public long id; // Polygon ref the node corresponds to.
-        public DtNode next;
-
-        public DtNode(int ptr)
-        {
-            this.ptr = ptr;
-        }
-        
-        public static int ComparisonNodeTotal(DtNode a, DtNode b)
-        {
-            int compare = a.total.CompareTo(b.total);
-            if (0 != compare)
-                return compare;
-
-            return a.ptr.CompareTo(b.ptr);
-        }
-
-        public override string ToString()
-        {
-            return $"Node [ptr={ptr} id={id} cost={cost} total={total}]";
-        }
+        return a.ptr.CompareTo(b.ptr);
     }
+
+    public override string ToString() =>
+        $"Node [ptr={ptr} id={id} cost={cost} total={total}]";
 }

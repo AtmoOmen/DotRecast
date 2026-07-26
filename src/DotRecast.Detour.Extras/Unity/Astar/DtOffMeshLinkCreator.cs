@@ -48,10 +48,10 @@ namespace DotRecast.Detour.Extras.Unity.Astar
                         startTile.header.vertCount += 2;
                         DtOffMeshConnection connection = new DtOffMeshConnection();
                         connection.poly = poly;
-                        connection.pos = new RcVec3f[]
-                        {
+                        connection.pos =
+                        [
                             l.clamped1, l.clamped2
-                        };
+                        ];
                         connection.rad = 0.1f;
                         connection.side = startTile == endTile
                             ? 0xFF

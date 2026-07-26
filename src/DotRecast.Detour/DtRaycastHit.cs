@@ -21,32 +21,31 @@ freely, subject to the following restrictions:
 using System;
 using DotRecast.Core.Numerics;
 
-namespace DotRecast.Detour
+namespace DotRecast.Detour;
+
+/// Provides information about raycast hit
+/// filled by dtNavMeshQuery::raycast
+/// @ingroup detour
+public ref struct DtRaycastHit
 {
-    /// Provides information about raycast hit
-    /// filled by dtNavMeshQuery::raycast
-    /// @ingroup detour
-    public ref struct DtRaycastHit
-    {
-        /// The hit parameter. (FLT_MAX if no wall hit.)
-        public float t;
+    /// The hit parameter. (FLT_MAX if no wall hit.)
+    public float t;
 
-        /// hitNormal	The normal of the nearest wall hit. [(x, y, z)]
-        public RcVec3f hitNormal;
+    /// hitNormal	The normal of the nearest wall hit. [(x, y, z)]
+    public RcVec3f hitNormal;
 
-        /// The index of the edge on the final polygon where the wall was hit.
-        public int hitEdgeIndex;
+    /// The index of the edge on the final polygon where the wall was hit.
+    public int hitEdgeIndex;
 
-        /// Pointer to an array of reference ids of the visited polygons. [opt]
-        public Span<long> path;
-        
-        /// The number of visited polygons. [opt]
-        public int pathCount;
+    /// Pointer to an array of reference ids of the visited polygons. [opt]
+    public Span<long> path;
 
-        /// The maximum number of polygons the @p path array can hold.
-        public int maxPath;
+    /// The number of visited polygons. [opt]
+    public int pathCount;
 
-        ///  The cost of the path until hit.
-        public float pathCost;
-    }
+    /// The maximum number of polygons the @p path array can hold.
+    public int maxPath;
+
+    /// The cost of the path until hit.
+    public float pathCost;
 }

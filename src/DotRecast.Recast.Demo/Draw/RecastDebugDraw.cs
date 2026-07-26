@@ -794,11 +794,12 @@ public class RecastDebugDraw : DebugDraw
             {
                 float fx = orig.X + x * cs;
                 float fz = orig.Z + y * cs;
-                RcSpan s = hf.spans[x + y * w];
-                while (s != null)
+                var spanIndex = hf.spans[x + y * w];
+                while (spanIndex != 0)
                 {
+                    ref var s = ref hf.Span(spanIndex);
                     AppendBox(fx, orig.Y + s.smin * ch, fz, fx + cs, orig.Y + s.smax * ch, fz + cs, fcol);
-                    s = s.next;
+                    spanIndex = s.next;
                 }
             }
         }
@@ -826,9 +827,10 @@ public class RecastDebugDraw : DebugDraw
             {
                 float fx = orig.X + x * cs;
                 float fz = orig.Z + y * cs;
-                RcSpan s = hf.spans[x + y * w];
-                while (s != null)
+                var spanIndex = hf.spans[x + y * w];
+                while (spanIndex != 0)
                 {
+                    ref var s = ref hf.Span(spanIndex);
                     if (s.area == SampleAreaModifications.SAMPLE_POLYAREA_TYPE_WALKABLE)
                     {
                         fcol[0] = DuRGBA(64, 128, 160, 255);
@@ -843,7 +845,7 @@ public class RecastDebugDraw : DebugDraw
                     }
 
                     AppendBox(fx, orig.Y + s.smin * ch, fz, fx + cs, orig.Y + s.smax * ch, fz + cs, fcol);
-                    s = s.next;
+                    spanIndex = s.next;
                 }
             }
         }

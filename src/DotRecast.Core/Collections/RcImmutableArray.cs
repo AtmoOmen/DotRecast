@@ -9,26 +9,26 @@ namespace DotRecast.Core.Collections
 
         public static RcImmutableArray<T> Create<T>(T item1)
         {
-            T[] array = new[] { item1 };
-            return new RcImmutableArray<T>(array);
+            T[] array = [item1];
+            return [with(array)];
         }
 
         public static RcImmutableArray<T> Create<T>(T item1, T item2)
         {
-            T[] array = new[] { item1, item2 };
-            return new RcImmutableArray<T>(array);
+            T[] array = [item1, item2];
+            return [with(array)];
         }
 
         public static RcImmutableArray<T> Create<T>(T item1, T item2, T item3)
         {
-            T[] array = new[] { item1, item2, item3 };
-            return new RcImmutableArray<T>(array);
+            T[] array = [item1, item2, item3];
+            return [with(array)];
         }
 
         public static RcImmutableArray<T> Create<T>(T item1, T item2, T item3, T item4)
         {
-            T[] array = new[] { item1, item2, item3, item4 };
-            return new RcImmutableArray<T>(array);
+            T[] array = [item1, item2, item3, item4];
+            return [with(array)];
         }
 
         public static RcImmutableArray<T> Create<T>(params T[] items)
@@ -40,7 +40,7 @@ namespace DotRecast.Core.Collections
 
             var tmp = new T[items.Length];
             RcArrays.Copy(items, tmp, items.Length);
-            return new RcImmutableArray<T>(tmp);
+            return [with(tmp)];
         }
     }
 }

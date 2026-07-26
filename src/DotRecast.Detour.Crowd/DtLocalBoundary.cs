@@ -23,151 +23,144 @@ using System.Collections.Generic;
 using DotRecast.Core;
 using DotRecast.Core.Numerics;
 
+namespace DotRecast.Detour.Crowd;
 
-namespace DotRecast.Detour.Crowd
+public class DtLocalBoundary
 {
-    public class DtLocalBoundary
+    public const int MAX_LOCAL_SEGS  = 8;
+    public const int MAX_LOCAL_POLYS = 16;
+
+    private RcVec3f         m_center;
+    private List<DtSegment> m_segs  = new();
+    private long[]          m_polys = new long[MAX_LOCAL_POLYS];
+    private int             m_npolys;
+
+    public DtLocalBoundary() =>
+        m_center.X = m_center.Y = m_center.Z = float.MaxValue;
+
+    public void Reset()
     {
-        public const int MAX_LOCAL_SEGS = 8;
-        public const int MAX_LOCAL_POLYS = 16;
+        m_center.X = m_center.Y = m_center.Z = float.MaxValue;
+        m_npolys   = 0;
+        m_segs.Clear();
+    }
 
-        private RcVec3f m_center = new RcVec3f();
-        private List<DtSegment> m_segs = new List<DtSegment>();
-        private long[] m_polys = new long[MAX_LOCAL_POLYS];
-        private int m_npolys;
+    protected void AddSegment
+    (
+        float         dist,
+        RcSegmentVert s
+    )
+    {
+        // Insert neighbour based on the distance.
+        var seg = new DtSegment();
+        seg.s[0] = s.vmin;
+        seg.s[1] = s.vmax;
+        //RcArrays.Copy(s, seg.s, 6);
+        seg.d    = dist;
 
-        public DtLocalBoundary()
+        if (0 == m_segs.Count)
+            m_segs.Add(seg);
+        else if (dist >= m_segs[m_segs.Count - 1].d)
         {
-            m_center.X = m_center.Y = m_center.Z = float.MaxValue;
-        }
-
-        public void Reset()
-        {
-            m_center.X = m_center.Y = m_center.Z = float.MaxValue;
-            m_npolys = 0;
-            m_segs.Clear();
-        }
-
-        protected void AddSegment(float dist, RcSegmentVert s)
-        {
-            // Insert neighbour based on the distance.
-            DtSegment seg = new DtSegment();
-            seg.s[0] = s.vmin;
-            seg.s[1] = s.vmax;
-            //RcArrays.Copy(s, seg.s, 6);
-            seg.d = dist;
-            if (0 == m_segs.Count)
-            {
-                m_segs.Add(seg);
-            }
-            else if (dist >= m_segs[m_segs.Count - 1].d)
-            {
-                if (m_segs.Count >= MAX_LOCAL_SEGS)
-                {
-                    return;
-                }
-
-                m_segs.Add(seg);
-            }
-            else
-            {
-                // Insert inbetween.
-                int i;
-                for (i = 0; i < m_segs.Count; ++i)
-                {
-                    if (dist <= m_segs[i].d)
-                    {
-                        break;
-                    }
-                }
-
-                m_segs.Insert(i, seg);
-            }
-
-            while (m_segs.Count > MAX_LOCAL_SEGS)
-            {
-                m_segs.RemoveAt(m_segs.Count - 1);
-            }
-        }
-
-        public void Update(long startRef, RcVec3f pos, float collisionQueryRange, DtNavMeshQuery navquery, IDtQueryFilter filter)
-        {
-            const int MAX_SEGS_PER_POLY = DtDetour.DT_VERTS_PER_POLYGON * 3;
-
-            if (startRef == 0)
-            {
-                Reset();
+            if (m_segs.Count >= MAX_LOCAL_SEGS)
                 return;
-            }
 
-            m_center = pos;
+            m_segs.Add(seg);
+        }
+        else
+        {
+            // Insert inbetween.
+            int i;
+            for (i = 0; i < m_segs.Count; ++i)
+                if (dist <= m_segs[i].d)
+                    break;
 
-            // First query non-overlapping polygons.
-            var status = navquery.FindLocalNeighbourhood(startRef, pos, collisionQueryRange, filter, m_polys, null, out m_npolys, MAX_LOCAL_POLYS);
-            if (status.Succeeded())
+            m_segs.Insert(i, seg);
+        }
+
+        while (m_segs.Count > MAX_LOCAL_SEGS)
+            m_segs.RemoveAt(m_segs.Count - 1);
+    }
+
+    public void Update
+    (
+        long           startRef,
+        RcVec3f        pos,
+        float          collisionQueryRange,
+        DtNavMeshQuery navquery,
+        IDtQueryFilter filter
+    )
+    {
+        const int MAX_SEGS_PER_POLY = DtDetour.DT_VERTS_PER_POLYGON * 3;
+
+        if (startRef == 0)
+        {
+            Reset();
+            return;
+        }
+
+        m_center = pos;
+
+        // First query non-overlapping polygons.
+        var status = navquery.FindLocalNeighbourhood(startRef, pos, collisionQueryRange, filter, m_polys, null, out m_npolys, MAX_LOCAL_POLYS);
+
+        if (status.Succeeded())
+        {
+            // Secondly, store all polygon edges.
+            m_segs.Clear();
+            Span<RcSegmentVert> segs  = stackalloc RcSegmentVert[MAX_SEGS_PER_POLY];
+            var                 nsegs = 0;
+
+            for (var j = 0; j < m_npolys; ++j)
             {
-                // Secondly, store all polygon edges.
-                m_segs.Clear();
-                Span<RcSegmentVert> segs = stackalloc RcSegmentVert[MAX_SEGS_PER_POLY];
-                int nsegs = 0;
+                var result = navquery.GetPolyWallSegments(m_polys[j], filter, segs, null, ref nsegs, MAX_SEGS_PER_POLY);
 
-                for (int j = 0; j < m_npolys; ++j)
+                if (result.Succeeded())
                 {
-                    var result = navquery.GetPolyWallSegments(m_polys[j], filter, segs, null, ref nsegs, MAX_SEGS_PER_POLY);
-                    if (result.Succeeded())
+                    for (var k = 0; k < nsegs; ++k)
                     {
-                        for (int k = 0; k < nsegs; ++k)
-                        {
-                            ref RcSegmentVert s = ref segs[k];
-                            var s0 = s.vmin;
-                            var s3 = s.vmax;
+                        ref var s  = ref segs[k];
+                        var     s0 = s.vmin;
+                        var     s3 = s.vmax;
 
-                            // Skip too distant segments.
-                            var distSqr = DtUtils.DistancePtSegSqr2D(pos, s0, s3, out var tseg);
-                            if (distSqr > RcMath.Sqr(collisionQueryRange))
-                            {
-                                continue;
-                            }
+                        // Skip too distant segments.
+                        var distSqr = DtUtils.DistancePtSegSqr2D(pos, s0, s3, out var tseg);
+                        if (distSqr > RcMath.Sqr(collisionQueryRange))
+                            continue;
 
-                            AddSegment(distSqr, s);
-                        }
+                        AddSegment(distSqr, s);
                     }
                 }
             }
-        }
-
-        public bool IsValid(DtNavMeshQuery navquery, IDtQueryFilter filter)
-        {
-            if (m_npolys <= 0)
-            {
-                return false;
-            }
-
-            // Check that all polygons still pass query filter.
-            for (int i = 0; i < m_npolys; ++i)
-            {
-                if (!navquery.IsValidPolyRef(m_polys[i], filter))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        public RcVec3f GetCenter()
-        {
-            return m_center;
-        }
-
-        public RcVec3f[] GetSegment(int j)
-        {
-            return m_segs[j].s;
-        }
-
-        public int GetSegmentCount()
-        {
-            return m_segs.Count;
         }
     }
+
+    public bool IsValid
+    (
+        DtNavMeshQuery navquery,
+        IDtQueryFilter filter
+    )
+    {
+        if (m_npolys <= 0)
+            return false;
+
+        // Check that all polygons still pass query filter.
+        for (var i = 0; i < m_npolys; ++i)
+            if (!navquery.IsValidPolyRef(m_polys[i], filter))
+                return false;
+
+        return true;
+    }
+
+    public RcVec3f GetCenter() =>
+        m_center;
+
+    public RcVec3f[] GetSegment
+    (
+        int j
+    ) =>
+        m_segs[j].s;
+
+    public int GetSegmentCount() =>
+        m_segs.Count;
 }

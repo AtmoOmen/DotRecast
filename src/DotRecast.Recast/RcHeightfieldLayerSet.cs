@@ -19,13 +19,12 @@ freely, subject to the following restrictions:
 */
 
 
-namespace DotRecast.Recast
+namespace DotRecast.Recast;
+
+/// Represents a set of heightfield layers.
+/// @ingroup recast
+/// @see rcAllocHeightfieldLayerSet, rcFreeHeightfieldLayerSet
+public class RcHeightfieldLayerSet
 {
-    /// Represents a set of heightfield layers.
-    /// @ingroup recast
-    /// @see rcAllocHeightfieldLayerSet, rcFreeHeightfieldLayerSet
-    public class RcHeightfieldLayerSet
-    {
-        public RcHeightfieldLayer[] layers; // < The layers in the set. [Size: #nlayers]
-    }
+    public RcHeightfieldLayer[] layers; // < The layers in the set. [Size: #nlayers]
 }

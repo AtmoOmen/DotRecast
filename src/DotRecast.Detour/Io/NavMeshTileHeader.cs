@@ -1,8 +1,7 @@
-namespace DotRecast.Detour.Io
+namespace DotRecast.Detour.Io;
+
+public struct NavMeshTileHeader
 {
-    public struct NavMeshTileHeader
-    {
-        public long tileRef;
-        public int dataSize;
-    }
+    public long tileRef;
+    public int  dataSize;
 }

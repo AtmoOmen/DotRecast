@@ -23,65 +23,74 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
-namespace DotRecast.Core
+namespace DotRecast.Core;
+
+/// Provides an interface for optional logging and performance tracking of the Recast 
+/// build process.
+/// 
+/// This class does not provide logging or timer functionality on its 
+/// own.  Both must be provided by a concrete implementation 
+/// by overriding the protected member functions.  Also, this class does not 
+/// provide an interface for extracting log messages. (Only adding them.) 
+/// So concrete implementations must provide one.
+/// 
+/// If no logging or timers are required, just pass an instance of this 
+/// class through the Recast build process.
+/// 
+/// @ingroup recast
+public class RcContext
 {
-    /// Provides an interface for optional logging and performance tracking of the Recast 
-    /// build process.
-    /// 
-    /// This class does not provide logging or timer functionality on its 
-    /// own.  Both must be provided by a concrete implementation 
-    /// by overriding the protected member functions.  Also, this class does not 
-    /// provide an interface for extracting log messages. (Only adding them.) 
-    /// So concrete implementations must provide one.
-    ///
-    /// If no logging or timers are required, just pass an instance of this 
-    /// class through the Recast build process.
-    /// 
-    /// @ingroup recast
-    public class RcContext
+    private readonly ThreadLocal<Dictionary<string, RcAtomicLong>> _timerStart;
+    private readonly ConcurrentDictionary<string, RcAtomicLong>    _timerAccum;
+
+    public RcContext()
     {
-        private readonly ThreadLocal<Dictionary<string, RcAtomicLong>> _timerStart;
-        private readonly ConcurrentDictionary<string, RcAtomicLong> _timerAccum;
+        _timerStart = new ThreadLocal<Dictionary<string, RcAtomicLong>>(() => new Dictionary<string, RcAtomicLong>());
+        _timerAccum = new ConcurrentDictionary<string, RcAtomicLong>();
+    }
 
-        public RcContext()
-        {
-            _timerStart = new ThreadLocal<Dictionary<string, RcAtomicLong>>(() => new Dictionary<string, RcAtomicLong>());
-            _timerAccum = new ConcurrentDictionary<string, RcAtomicLong>();
-        }
+    public RcScopedTimer ScopedTimer
+    (
+        RcTimerLabel label
+    ) =>
+        new(this, label);
 
-        public RcScopedTimer ScopedTimer(RcTimerLabel label)
-        {
-            return new RcScopedTimer(this, label);
-        }
-
-        public void StartTimer(RcTimerLabel label)
-        {
-            _timerStart.Value[label.Name] = new RcAtomicLong(RcFrequency.Ticks);
-        }
+    public void StartTimer
+    (
+        RcTimerLabel label
+    ) =>
+        _timerStart.Value[label.Name] = new RcAtomicLong(RcFrequency.Ticks);
 
 
-        public void StopTimer(RcTimerLabel label)
-        {
-            _timerAccum
-                .GetOrAdd(label.Name, _ => new RcAtomicLong(0))
-                .AddAndGet(RcFrequency.Ticks - _timerStart.Value?[label.Name].Read() ?? 0);
-        }
+    public void StopTimer
+    (
+        RcTimerLabel label
+    ) =>
+        _timerAccum
+            .GetOrAdd(label.Name, _ => new RcAtomicLong(0))
+            .AddAndGet(RcFrequency.Ticks - _timerStart.Value?[label.Name].Read() ?? 0);
 
-        public void Warn(string message)
-        {
-            Console.WriteLine(message);
-        }
+    public void Warn
+    (
+        string message
+    ) =>
+        Console.WriteLine(message);
 
-        public void Log(RcLogCategory logLevel, string message)
-        {
-            Console.WriteLine(message);
-        }
+    public void Log
+    (
+        RcLogCategory logLevel,
+        string        message
+    ) =>
+        Console.WriteLine(message);
 
-        public List<RcTelemetryTick> ToList()
-        {
-            return _timerAccum
-                .Select(x => new RcTelemetryTick(x.Key, x.Value.Read()))
-                .ToList();
-        }
+    public List<RcTelemetryTick> ToList() =>
+        _timerAccum
+            .Select(x => new RcTelemetryTick(x.Key, x.Value.Read()))
+            .ToList();
+
+    public void ResetTimers()
+    {
+        _timerStart.Value?.Clear();
+        _timerAccum.Clear();
     }
 }

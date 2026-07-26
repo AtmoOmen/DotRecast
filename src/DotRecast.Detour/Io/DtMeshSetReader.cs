@@ -20,137 +20,157 @@ using System;
 using System.IO;
 using DotRecast.Core;
 
-namespace DotRecast.Detour.Io
+namespace DotRecast.Detour.Io;
+
+using static DtDetour;
+
+public class DtMeshSetReader
 {
-    using static DtDetour;
+    private readonly DtMeshDataReader      meshReader  = new();
+    private readonly DtNavMeshParamsReader paramReader = new();
 
-    public class DtMeshSetReader
+    public DtNavMesh Read
+    (
+        BinaryReader @is,
+        int          maxVertPerPoly
+    ) =>
+        Read(RcIO.ToByteBuffer(@is), maxVertPerPoly, false);
+
+    public DtNavMesh Read
+    (
+        RcByteBuffer bb,
+        int          maxVertPerPoly
+    ) =>
+        Read(bb, maxVertPerPoly, false);
+
+    public DtNavMesh Read32Bit
+    (
+        BinaryReader @is,
+        int          maxVertPerPoly
+    ) =>
+        Read(RcIO.ToByteBuffer(@is), maxVertPerPoly, true);
+
+    public DtNavMesh Read32Bit
+    (
+        RcByteBuffer bb,
+        int          maxVertPerPoly
+    ) =>
+        Read(bb, maxVertPerPoly, true);
+
+    public DtNavMesh Read
+    (
+        BinaryReader @is
+    ) =>
+        Read(RcIO.ToByteBuffer(@is));
+
+    public DtNavMesh Read
+    (
+        RcByteBuffer bb
+    ) =>
+        Read(bb, -1, false);
+
+    private DtNavMesh Read
+    (
+        RcByteBuffer bb,
+        int          maxVertPerPoly,
+        bool         is32Bit
+    )
     {
-        private readonly DtMeshDataReader meshReader = new DtMeshDataReader();
-        private readonly DtNavMeshParamsReader paramReader = new DtNavMeshParamsReader();
+        var header = ReadHeader(bb, maxVertPerPoly);
+        if (header.maxVertsPerPoly <= 0)
+            throw new IOException("Invalid number of verts per poly " + header.maxVertsPerPoly);
 
-        public DtNavMesh Read(BinaryReader @is, int maxVertPerPoly)
+        var cCompatibility = header.version == NavMeshSetHeader.NAVMESHSET_VERSION;
+        var mesh           = new DtNavMesh();
+        mesh.Init(header.option, header.maxVertsPerPoly);
+        ReadTiles(bb, is32Bit, header, cCompatibility, mesh);
+        return mesh;
+    }
+
+    private NavMeshSetHeader ReadHeader
+    (
+        RcByteBuffer bb,
+        int          maxVertsPerPoly
+    )
+    {
+        var header = new NavMeshSetHeader();
+        header.magic = bb.GetInt();
+
+        if (header.magic != NavMeshSetHeader.NAVMESHSET_MAGIC)
         {
-            return Read(RcIO.ToByteBuffer(@is), maxVertPerPoly, false);
-        }
-
-        public DtNavMesh Read(RcByteBuffer bb, int maxVertPerPoly)
-        {
-            return Read(bb, maxVertPerPoly, false);
-        }
-
-        public DtNavMesh Read32Bit(BinaryReader @is, int maxVertPerPoly)
-        {
-            return Read(RcIO.ToByteBuffer(@is), maxVertPerPoly, true);
-        }
-
-        public DtNavMesh Read32Bit(RcByteBuffer bb, int maxVertPerPoly)
-        {
-            return Read(bb, maxVertPerPoly, true);
-        }
-
-        public DtNavMesh Read(BinaryReader @is)
-        {
-            return Read(RcIO.ToByteBuffer(@is));
-        }
-
-        public DtNavMesh Read(RcByteBuffer bb)
-        {
-            return Read(bb, -1, false);
-        }
-
-        DtNavMesh Read(RcByteBuffer bb, int maxVertPerPoly, bool is32Bit)
-        {
-            NavMeshSetHeader header = ReadHeader(bb, maxVertPerPoly);
-            if (header.maxVertsPerPoly <= 0)
-            {
-                throw new IOException("Invalid number of verts per poly " + header.maxVertsPerPoly);
-            }
-
-            bool cCompatibility = header.version == NavMeshSetHeader.NAVMESHSET_VERSION;
-            DtNavMesh mesh = new DtNavMesh();
-            mesh.Init(header.option, header.maxVertsPerPoly);
-            ReadTiles(bb, is32Bit, header, cCompatibility, mesh);
-            return mesh;
-        }
-
-        private NavMeshSetHeader ReadHeader(RcByteBuffer bb, int maxVertsPerPoly)
-        {
-            NavMeshSetHeader header = new NavMeshSetHeader();
-            header.magic = bb.GetInt();
+            header.magic = RcIO.SwapEndianness(header.magic);
             if (header.magic != NavMeshSetHeader.NAVMESHSET_MAGIC)
-            {
-                header.magic = RcIO.SwapEndianness(header.magic);
-                if (header.magic != NavMeshSetHeader.NAVMESHSET_MAGIC)
-                {
-                    throw new IOException("Invalid magic " + header.magic);
-                }
+                throw new IOException("Invalid magic " + header.magic);
 
-                bb.Order(bb.Order() == RcByteOrder.BIG_ENDIAN ? RcByteOrder.LITTLE_ENDIAN : RcByteOrder.BIG_ENDIAN);
-            }
-
-            header.version = bb.GetInt();
-            if (header.version != NavMeshSetHeader.NAVMESHSET_VERSION && header.version != NavMeshSetHeader.NAVMESHSET_VERSION_RECAST4J_1
-                                                                      && header.version != NavMeshSetHeader.NAVMESHSET_VERSION_RECAST4J)
-            {
-                throw new IOException("Invalid version " + header.version);
-            }
-
-            header.numTiles = bb.GetInt();
-            header.option = paramReader.Read(bb);
-            header.maxVertsPerPoly = maxVertsPerPoly;
-            if (header.version == NavMeshSetHeader.NAVMESHSET_VERSION_RECAST4J)
-            {
-                header.maxVertsPerPoly = bb.GetInt();
-            }
-
-            return header;
+            bb.Order
+            (
+                bb.Order() == RcByteOrder.BIG_ENDIAN ?
+                    RcByteOrder.LITTLE_ENDIAN :
+                    RcByteOrder.BIG_ENDIAN
+            );
         }
 
-        private void ReadTiles(RcByteBuffer bb, bool is32Bit, in NavMeshSetHeader header, bool cCompatibility, DtNavMesh mesh)
+        header.version = bb.GetInt();
+        if (header.version != NavMeshSetHeader.NAVMESHSET_VERSION            &&
+            header.version != NavMeshSetHeader.NAVMESHSET_VERSION_RECAST4J_1 &&
+            header.version != NavMeshSetHeader.NAVMESHSET_VERSION_RECAST4J)
+            throw new IOException("Invalid version " + header.version);
+
+        header.numTiles        = bb.GetInt();
+        header.option          = paramReader.Read(bb);
+        header.maxVertsPerPoly = maxVertsPerPoly;
+        if (header.version == NavMeshSetHeader.NAVMESHSET_VERSION_RECAST4J)
+            header.maxVertsPerPoly = bb.GetInt();
+
+        return header;
+    }
+
+    private void ReadTiles
+    (
+        RcByteBuffer        bb,
+        bool                is32Bit,
+        in NavMeshSetHeader header,
+        bool                cCompatibility,
+        DtNavMesh           mesh
+    )
+    {
+        // Read tiles.
+        for (var i = 0; i < header.numTiles; ++i)
         {
-            // Read tiles.
-            for (int i = 0; i < header.numTiles; ++i)
-            {
-                NavMeshTileHeader tileHeader = new NavMeshTileHeader();
-                if (is32Bit)
-                {
-                    tileHeader.tileRef = Convert32BitRef(bb.GetInt(), header.option);
-                }
-                else
-                {
-                    tileHeader.tileRef = bb.GetLong();
-                }
+            var tileHeader = new NavMeshTileHeader();
+            if (is32Bit)
+                tileHeader.tileRef = Convert32BitRef(bb.GetInt(), header.option);
+            else
+                tileHeader.tileRef = bb.GetLong();
 
-                tileHeader.dataSize = bb.GetInt();
-                if (tileHeader.tileRef == 0 || tileHeader.dataSize == 0)
-                {
-                    break;
-                }
+            tileHeader.dataSize = bb.GetInt();
+            if (tileHeader.tileRef == 0 || tileHeader.dataSize == 0)
+                break;
 
-                if (cCompatibility && !is32Bit)
-                {
-                    bb.GetInt(); // C struct padding
-                }
+            if (cCompatibility && !is32Bit)
+                bb.GetInt(); // C struct padding
 
-                DtMeshData data = meshReader.Read(bb, mesh.GetMaxVertsPerPoly(), is32Bit);
-                mesh.AddTile(data, i, tileHeader.tileRef, out _);
-            }
+            var data = meshReader.Read(bb, mesh.GetMaxVertsPerPoly(), is32Bit);
+            mesh.AddTile(data, i, tileHeader.tileRef, out _);
         }
+    }
 
-        private long Convert32BitRef(int refs, in DtNavMeshParams option)
-        {
-            int m_tileBits = DtUtils.Ilog2(DtUtils.NextPow2(option.maxTiles));
-            int m_polyBits = DtUtils.Ilog2(DtUtils.NextPow2(option.maxPolys));
-            // Only allow 31 salt bits, since the salt mask is calculated using 32bit uint and it will overflow.
-            int m_saltBits = Math.Min(31, 32 - m_tileBits - m_polyBits);
-            int saltMask = (1 << m_saltBits) - 1;
-            int tileMask = (1 << m_tileBits) - 1;
-            int polyMask = (1 << m_polyBits) - 1;
-            int salt = ((refs >> (m_polyBits + m_tileBits)) & saltMask);
-            int it = ((refs >> m_polyBits) & tileMask);
-            int ip = refs & polyMask;
-            return EncodePolyId(salt, it, ip);
-        }
+    private long Convert32BitRef
+    (
+        int                refs,
+        in DtNavMeshParams option
+    )
+    {
+        var m_tileBits = DtUtils.Ilog2(DtUtils.NextPow2(option.maxTiles));
+        var m_polyBits = DtUtils.Ilog2(DtUtils.NextPow2(option.maxPolys));
+        // Only allow 31 salt bits, since the salt mask is calculated using 32bit uint and it will overflow.
+        var m_saltBits = Math.Min(31, 32 - m_tileBits - m_polyBits);
+        var saltMask   = (1    << m_saltBits) - 1;
+        var tileMask   = (1    << m_tileBits) - 1;
+        var polyMask   = (1    << m_polyBits) - 1;
+        var salt       = (refs >> (m_polyBits + m_tileBits)) & saltMask;
+        var it         = (refs >> m_polyBits)                & tileMask;
+        var ip         = refs                                & polyMask;
+        return EncodePolyId(salt, it, ip);
     }
 }

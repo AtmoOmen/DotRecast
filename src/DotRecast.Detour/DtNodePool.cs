@@ -21,121 +21,128 @@ freely, subject to the following restrictions:
 using System.Collections.Generic;
 using System.Linq;
 
-namespace DotRecast.Detour
+namespace DotRecast.Detour;
+
+public class DtNodePool
 {
-    public class DtNodePool
+    private readonly Dictionary<long, DtNode> m_map;
+
+    private          int          m_nodeCount;
+    private readonly List<DtNode> m_nodes;
+
+    public DtNodePool()
     {
-        private readonly Dictionary<long, DtNode> m_map;
-
-        private int m_nodeCount;
-        private readonly List<DtNode> m_nodes;
-
-        public DtNodePool()
-        {
-            m_map = new Dictionary<long, DtNode>();
-            m_nodes = new List<DtNode>();
-        }
-
-        public void Clear()
-        {
-            m_map.Clear();
-            m_nodeCount = 0;
-        }
-
-        public int GetNodeCount()
-        {
-            return m_nodeCount;
-        }
-
-        public int FindNodes(long id, out DtNode nodes)
-        {
-            m_map.TryGetValue(id, out nodes);
-            int count = 0;
-            for (var node = nodes; node != null; node = node.next)
-            {
-                count++;
-            }
-
-            return count;
-        }
-
-        public DtNode FindNode(long id)
-        {
-            m_map.TryGetValue(id, out var node);
-            return node;
-        }
-
-        public DtNode GetNode(long id, int state)
-        {
-            DtNode tail = null;
-            if (m_map.TryGetValue(id, out var node))
-            {
-                for (; node != null; node = node.next)
-                {
-                    if (node.state == state)
-                    {
-                        return node;
-                    }
-
-                    tail = node;
-                }
-            }
-
-            return Create(id, state, tail);
-        }
-
-        private DtNode Create(long id, int state, DtNode tail)
-        {
-            if (m_nodes.Count <= m_nodeCount)
-            {
-                var newNode = new DtNode(m_nodeCount);
-                m_nodes.Add(newNode);
-            }
-
-            int i = m_nodeCount;
-            m_nodeCount++;
-            var node = m_nodes[i];
-            node.pidx = 0;
-            node.cost = 0;
-            node.total = 0;
-            node.id = id;
-            node.state = state;
-            node.flags = 0;
-            node.next = null;
-
-            if (tail != null)
-            {
-                tail.next = node;
-            }
-            else
-            {
-                m_map[id] = node;
-            }
-            return node;
-        }
-
-        public int GetNodeIdx(DtNode node)
-        {
-            return node != null
-                ? node.ptr + 1
-                : 0;
-        }
-
-        public DtNode GetNodeAtIdx(int idx)
-        {
-            return idx != 0
-                ? m_nodes[idx - 1]
-                : null;
-        }
-
-        public DtNode GetNode(long refs)
-        {
-            return GetNode(refs, 0);
-        }
-
-        public IEnumerable<DtNode> AsEnumerable()
-        {
-            return m_nodes.Take(m_nodeCount);
-        }
+        m_map   = new Dictionary<long, DtNode>();
+        m_nodes = new List<DtNode>();
     }
+
+    public void Clear()
+    {
+        m_map.Clear();
+        m_nodeCount = 0;
+    }
+
+    public int GetNodeCount() =>
+        m_nodeCount;
+
+    public int FindNodes
+    (
+        long       id,
+        out DtNode nodes
+    )
+    {
+        m_map.TryGetValue(id, out nodes);
+        var count = 0;
+        for (var node = nodes; node != null; node = node.next)
+            count++;
+
+        return count;
+    }
+
+    public DtNode FindNode
+    (
+        long id
+    )
+    {
+        m_map.TryGetValue(id, out var node);
+        return node;
+    }
+
+    public DtNode GetNode
+    (
+        long id,
+        int  state
+    )
+    {
+        DtNode tail = null;
+
+        if (m_map.TryGetValue(id, out var node))
+        {
+            for (; node != null; node = node.next)
+            {
+                if (node.state == state)
+                    return node;
+
+                tail = node;
+            }
+        }
+
+        return Create(id, state, tail);
+    }
+
+    private DtNode Create
+    (
+        long   id,
+        int    state,
+        DtNode tail
+    )
+    {
+        if (m_nodes.Count <= m_nodeCount)
+        {
+            var newNode = new DtNode(m_nodeCount);
+            m_nodes.Add(newNode);
+        }
+
+        var i = m_nodeCount;
+        m_nodeCount++;
+        var node = m_nodes[i];
+        node.pidx  = 0;
+        node.cost  = 0;
+        node.total = 0;
+        node.id    = id;
+        node.state = state;
+        node.flags = 0;
+        node.next  = null;
+
+        if (tail != null)
+            tail.next = node;
+        else
+            m_map[id] = node;
+        return node;
+    }
+
+    public int GetNodeIdx
+    (
+        DtNode node
+    ) =>
+        node != null ?
+            node.ptr + 1 :
+            0;
+
+    public DtNode GetNodeAtIdx
+    (
+        int idx
+    ) =>
+        idx != 0 ?
+            m_nodes[idx - 1] :
+            null;
+
+    public DtNode GetNode
+    (
+        long refs
+    ) =>
+        GetNode(refs, 0);
+
+    public IEnumerable<DtNode> AsEnumerable() =>
+        m_nodes.Take(m_nodeCount);
 }

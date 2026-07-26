@@ -23,124 +23,137 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
-namespace DotRecast.Detour.Crowd
+namespace DotRecast.Detour.Crowd;
+
+public class DtProximityGrid
 {
-    public class DtProximityGrid
+    private readonly float                                _cellSize;
+    private readonly float                                _invCellSize;
+    private readonly Dictionary<long, List<DtCrowdAgent>> _items;
+
+    public DtProximityGrid
+    (
+        float cellSize
+    )
     {
-        private readonly float _cellSize;
-        private readonly float _invCellSize;
-        private readonly Dictionary<long, List<DtCrowdAgent>> _items;
+        _cellSize    = cellSize;
+        _invCellSize = 1.0f / cellSize;
+        _items       = new Dictionary<long, List<DtCrowdAgent>>();
+    }
 
-        public DtProximityGrid(float cellSize)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static long CombineKey
+    (
+        int x,
+        int y
+    )
+    {
+        var ux = (uint)x;
+        var uy = (uint)y;
+        return ((long)ux << 32) | uy;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void DecomposeKey
+    (
+        long    key,
+        out int x,
+        out int y
+    )
+    {
+        var ux = (uint)(key >> 32);
+        var uy = (uint)key;
+        x = (int)ux;
+        y = (int)uy;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Clear() =>
+        _items.Clear();
+
+    public void AddItem
+    (
+        DtCrowdAgent agent,
+        float        minx,
+        float        miny,
+        float        maxx,
+        float        maxy
+    )
+    {
+        var iminx = (int)MathF.Floor(minx * _invCellSize);
+        var iminy = (int)MathF.Floor(miny * _invCellSize);
+        var imaxx = (int)MathF.Floor(maxx * _invCellSize);
+        var imaxy = (int)MathF.Floor(maxy * _invCellSize);
+
+        for (var y = iminy; y <= imaxy; ++y)
+        for (var x = iminx; x <= imaxx; ++x)
         {
-            _cellSize = cellSize;
-            _invCellSize = 1.0f / cellSize;
-            _items = new Dictionary<long, List<DtCrowdAgent>>();
-        }
+            var key = CombineKey(x, y);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static long CombineKey(int x, int y)
-        {
-            uint ux = (uint)x;
-            uint uy = (uint)y;
-            return ((long)ux << 32) | uy;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void DecomposeKey(long key, out int x, out int y)
-        {
-            uint ux = (uint)(key >> 32);
-            uint uy = (uint)key;
-            x = (int)ux;
-            y = (int)uy;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear()
-        {
-            _items.Clear();
-        }
-
-        public void AddItem(DtCrowdAgent agent, float minx, float miny, float maxx, float maxy)
-        {
-            int iminx = (int)MathF.Floor(minx * _invCellSize);
-            int iminy = (int)MathF.Floor(miny * _invCellSize);
-            int imaxx = (int)MathF.Floor(maxx * _invCellSize);
-            int imaxy = (int)MathF.Floor(maxy * _invCellSize);
-
-            for (int y = iminy; y <= imaxy; ++y)
+            if (!_items.TryGetValue(key, out var ids))
             {
-                for (int x = iminx; x <= imaxx; ++x)
-                {
-                    long key = CombineKey(x, y);
-                    if (!_items.TryGetValue(key, out var ids))
-                    {
-                        ids = new List<DtCrowdAgent>();
-                        _items.Add(key, ids);
-                    }
-
-                    ids.Add(agent);
-                }
-            }
-        }
-
-        public int QueryItems(float minx, float miny, float maxx, float maxy, Span<int> ids, int maxIds)
-        {
-            int iminx = (int)MathF.Floor(minx * _invCellSize);
-            int iminy = (int)MathF.Floor(miny * _invCellSize);
-            int imaxx = (int)MathF.Floor(maxx * _invCellSize);
-            int imaxy = (int)MathF.Floor(maxy * _invCellSize);
-
-            int n = 0;
-
-            for (int y = iminy; y <= imaxy; ++y)
-            {
-                for (int x = iminx; x <= imaxx; ++x)
-                {
-                    long key = CombineKey(x, y);
-                    bool hasPool = _items.TryGetValue(key, out var pool);
-                    if (!hasPool)
-                    {
-                        continue;
-                    }
-
-                    for (int idx = 0; idx < pool.Count; ++idx)
-                    {
-                        var item = pool[idx];
-
-                        // Check if the id exists already.
-                        int end = n;
-                        int i = 0;
-                        while (i != end && ids[i] != item.idx)
-                        {
-                            ++i;
-                        }
-
-                        // Item not found, add it.
-                        if (i == n)
-                        {
-                            ids[n++] = item.idx;
-
-                            if (n >= maxIds)
-                                return n;
-                        }
-                    }
-                }
+                ids = new List<DtCrowdAgent>();
+                _items.Add(key, ids);
             }
 
-            return n;
-        }
-
-        public IEnumerable<(long, int)> GetItemCounts()
-        {
-            return _items
-                .Where(e => e.Value.Count > 0)
-                .Select(e => (e.Key, e.Value.Count));
-        }
-
-        public float GetCellSize()
-        {
-            return _cellSize;
+            ids.Add(agent);
         }
     }
+
+    public int QueryItems
+    (
+        float     minx,
+        float     miny,
+        float     maxx,
+        float     maxy,
+        Span<int> ids,
+        int       maxIds
+    )
+    {
+        var iminx = (int)MathF.Floor(minx * _invCellSize);
+        var iminy = (int)MathF.Floor(miny * _invCellSize);
+        var imaxx = (int)MathF.Floor(maxx * _invCellSize);
+        var imaxy = (int)MathF.Floor(maxy * _invCellSize);
+
+        var n = 0;
+
+        for (var y = iminy; y <= imaxy; ++y)
+        for (var x = iminx; x <= imaxx; ++x)
+        {
+            var key     = CombineKey(x, y);
+            var hasPool = _items.TryGetValue(key, out var pool);
+            if (!hasPool)
+                continue;
+
+            for (var idx = 0; idx < pool.Count; ++idx)
+            {
+                var item = pool[idx];
+
+                // Check if the id exists already.
+                var end = n;
+                var i   = 0;
+                while (i != end && ids[i] != item.idx)
+                    ++i;
+
+                // Item not found, add it.
+                if (i == n)
+                {
+                    ids[n++] = item.idx;
+
+                    if (n >= maxIds)
+                        return n;
+                }
+            }
+        }
+
+        return n;
+    }
+
+    public IEnumerable<(long, int)> GetItemCounts() =>
+        _items
+            .Where(e => e.Value.Count > 0)
+            .Select(e => (e.Key, e.Value.Count));
+
+    public float GetCellSize() =>
+        _cellSize;
 }

@@ -925,8 +925,8 @@ namespace DotRecast.Recast
             }
 
             // Remove too small regions.
-            List<int> stack = new List<int>(32);
-            List<int> trace = new List<int>(32);
+            List<int> stack = [with(32)];
+            List<int> trace = [with(32)];
             for (int i = 0; i < nreg; ++i)
             {
                 RcRegion reg = regions[i];
@@ -1178,7 +1178,7 @@ namespace DotRecast.Recast
             }
 
             // Find region neighbours and overlapping regions.
-            List<int> lregs = new List<int>(32);
+            List<int> lregs = [with(32)];
             for (int y = 0; y < h; ++y)
             {
                 for (int x = 0; x < w; ++x)
@@ -1256,7 +1256,7 @@ namespace DotRecast.Recast
             }
 
             // Merge montone regions to create non-overlapping areas.
-            List<int> stack = new List<int>(32);
+            List<int> stack = [with(32)];
             for (int i = 1; i < nreg; ++i)
             {
                 RcRegion root = regions[i];
@@ -1670,10 +1670,10 @@ namespace DotRecast.Recast
             List<List<RcLevelStackEntry>> lvlStacks = new List<List<RcLevelStackEntry>>();
             for (int i = 0; i < NB_STACKS; ++i)
             {
-                lvlStacks.Add(new List<RcLevelStackEntry>(256));
+                lvlStacks.Add([with(256)]);
             }
 
-            List<RcLevelStackEntry> stack = new List<RcLevelStackEntry>(256);
+            List<RcLevelStackEntry> stack = [with(256)];
 
             int[] srcReg = new int[chf.spanCount];
             int[] srcDist = new int[chf.spanCount];

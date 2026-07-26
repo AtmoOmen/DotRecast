@@ -20,13 +20,12 @@ freely, subject to the following restrictions:
 
 using DotRecast.Core.Numerics;
 
-namespace DotRecast.Detour.Crowd
+namespace DotRecast.Detour.Crowd;
+
+public class DtCrowdAgentDebugInfo
 {
-    public class DtCrowdAgentDebugInfo
-    {
-        public DtCrowdAgent agent;
-        public RcVec3f optStart = new RcVec3f();
-        public RcVec3f optEnd = new RcVec3f();
-        public DtObstacleAvoidanceDebugData vod;
-    }
+    public DtCrowdAgent                 agent;
+    public RcVec3f                      optStart = new();
+    public RcVec3f                      optEnd   = new();
+    public DtObstacleAvoidanceDebugData vod;
 }

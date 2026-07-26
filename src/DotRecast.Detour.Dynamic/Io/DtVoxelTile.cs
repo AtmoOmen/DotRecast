@@ -80,28 +80,29 @@ namespace DotRecast.Detour.Dynamic.Io
             {
                 for (int x = 0; x < width; x++)
                 {
-                    RcSpan prev = null;
+                    uint prev = 0;
                     int spanCount = RcByteUtils.GetShortBE(spanData, position);
                     position += 2;
                     for (int s = 0; s < spanCount; s++)
                     {
-                        RcSpan span = new RcSpan();
+                        var spanIndex = hf.spanPool.Alloc();
+                        ref var span = ref hf.Span(spanIndex);
                         span.smin = RcByteUtils.GetIntBE(spanData, position);
                         position += 4;
                         span.smax = RcByteUtils.GetIntBE(spanData, position);
                         position += 4;
                         span.area = RcByteUtils.GetIntBE(spanData, position);
                         position += 4;
-                        if (prev == null)
+                        if (prev == 0)
                         {
-                            hf.spans[pz + x] = span;
+                            hf.spans[pz + x] = spanIndex;
                         }
                         else
                         {
-                            prev.next = span;
+                            hf.Span(prev).next = spanIndex;
                         }
 
-                        prev = span;
+                        prev = spanIndex;
                     }
                 }
             }
@@ -117,28 +118,29 @@ namespace DotRecast.Detour.Dynamic.Io
             {
                 for (int x = 0; x < width; x++)
                 {
-                    RcSpan prev = null;
+                    uint prev = 0;
                     int spanCount = RcByteUtils.GetShortLE(spanData, position);
                     position += 2;
                     for (int s = 0; s < spanCount; s++)
                     {
-                        RcSpan span = new RcSpan();
+                        var spanIndex = hf.spanPool.Alloc();
+                        ref var span = ref hf.Span(spanIndex);
                         span.smin = RcByteUtils.GetIntLE(spanData, position);
                         position += 4;
                         span.smax = RcByteUtils.GetIntLE(spanData, position);
                         position += 4;
                         span.area = RcByteUtils.GetIntLE(spanData, position);
                         position += 4;
-                        if (prev == null)
+                        if (prev == 0)
                         {
-                            hf.spans[pz + x] = span;
+                            hf.spans[pz + x] = spanIndex;
                         }
                         else
                         {
-                            prev.next = span;
+                            hf.Span(prev).next = spanIndex;
                         }
 
-                        prev = span;
+                        prev = spanIndex;
                     }
                 }
             }
@@ -154,12 +156,13 @@ namespace DotRecast.Detour.Dynamic.Io
             {
                 for (int x = 0; x < heightfield.width; x++)
                 {
-                    RcSpan span = heightfield.spans[pz + x];
-                    while (span != null)
+                    var spanIndex = heightfield.spans[pz + x];
+                    while (spanIndex != 0)
                     {
+                        ref var span = ref heightfield.Span(spanIndex);
                         counts[pz + x]++;
                         totalCount++;
-                        span = span.next;
+                        spanIndex = span.next;
                     }
                 }
             }
@@ -171,13 +174,14 @@ namespace DotRecast.Detour.Dynamic.Io
                 for (int x = 0; x < heightfield.width; x++)
                 {
                     position = RcByteUtils.PutShort(counts[pz + x], data, position, order);
-                    RcSpan span = heightfield.spans[pz + x];
-                    while (span != null)
+                    var spanIndex = heightfield.spans[pz + x];
+                    while (spanIndex != 0)
                     {
+                        ref var span = ref heightfield.Span(spanIndex);
                         position = RcByteUtils.PutInt(span.smin, data, position, order);
                         position = RcByteUtils.PutInt(span.smax, data, position, order);
                         position = RcByteUtils.PutInt(span.area, data, position, order);
-                        span = span.next;
+                        spanIndex = span.next;
                     }
                 }
             }

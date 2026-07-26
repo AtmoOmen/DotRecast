@@ -1,13 +1,16 @@
 using DotRecast.Core.Numerics;
 
-namespace DotRecast.Detour.Crowd
-{
-    public class DtSegment
-    {
-        /** Segment start/end */
-        public RcVec3f[] s = new RcVec3f[2];
+namespace DotRecast.Detour.Crowd;
 
-        /** Distance for pruning. */
-        public float d;
-    }
+public class DtSegment
+{
+    /**
+     * Segment start/end
+     */
+    public RcVec3f[] s = new RcVec3f[2];
+
+    /**
+     * Distance for pruning.
+     */
+    public float d;
 }

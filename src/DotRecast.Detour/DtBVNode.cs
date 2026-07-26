@@ -20,15 +20,14 @@ freely, subject to the following restrictions:
 
 using DotRecast.Core.Numerics;
 
-namespace DotRecast.Detour
+namespace DotRecast.Detour;
+
+/// Bounding volume node.
+/// @note This structure is rarely if ever used by the end user.
+/// @see dtMeshTile
+public class DtBVNode
 {
-    /// Bounding volume node.
-    /// @note This structure is rarely if ever used by the end user.
-    /// @see dtMeshTile
-    public class DtBVNode
-    {
-        public RcVec3i bmin; //< Minimum bounds of the node's AABB. [(x, y, z)]
-        public RcVec3i bmax; //< Maximum bounds of the node's AABB. [(x, y, z)]
-        public int i; //< The node's index. (Negative for escape sequence.)
-    }
+    public RcVec3i bmin; //< Minimum bounds of the node's AABB. [(x, y, z)]
+    public RcVec3i bmax; //< Maximum bounds of the node's AABB. [(x, y, z)]
+    public int     i;    //< The node's index. (Negative for escape sequence.)
 }

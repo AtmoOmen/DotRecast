@@ -21,35 +21,36 @@ freely, subject to the following restrictions:
 using System.Collections.Generic;
 using DotRecast.Core.Numerics;
 
-namespace DotRecast.Recast.Geom
+namespace DotRecast.Recast.Geom;
+
+public class RcTriMesh
 {
-    public class RcTriMesh
+    private readonly float[]         vertices;
+    private readonly int[]           faces;
+    public readonly  RcChunkyTriMesh chunkyTriMesh;
+
+    public RcTriMesh
+    (
+        float[] vertices,
+        int[]   faces
+    )
     {
-        private readonly float[] vertices;
-        private readonly int[] faces;
-        public readonly RcChunkyTriMesh chunkyTriMesh;
-
-        public RcTriMesh(float[] vertices, int[] faces)
-        {
-            this.vertices = vertices;
-            this.faces = faces;
-            chunkyTriMesh = new RcChunkyTriMesh();
-            RcChunkyTriMeshs.CreateChunkyTriMesh(vertices, faces, faces.Length / 3, 32, chunkyTriMesh);
-        }
-
-        public int[] GetTris()
-        {
-            return faces;
-        }
-
-        public float[] GetVerts()
-        {
-            return vertices;
-        }
-
-        public List<RcChunkyTriMeshNode> GetChunksOverlappingRect(RcVec2f bmin, RcVec2f bmax)
-        {
-            return RcChunkyTriMeshs.GetChunksOverlappingRect(chunkyTriMesh, bmin, bmax);
-        }
+        this.vertices = vertices;
+        this.faces    = faces;
+        chunkyTriMesh = new RcChunkyTriMesh();
+        RcChunkyTriMeshs.CreateChunkyTriMesh(vertices, faces, faces.Length / 3, 32, chunkyTriMesh);
     }
+
+    public int[] GetTris() =>
+        faces;
+
+    public float[] GetVerts() =>
+        vertices;
+
+    public List<RcChunkyTriMeshNode> GetChunksOverlappingRect
+    (
+        RcVec2f bmin,
+        RcVec2f bmax
+    ) =>
+        RcChunkyTriMeshs.GetChunksOverlappingRect(chunkyTriMesh, bmin, bmax);
 }

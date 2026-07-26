@@ -1,9 +1,8 @@
-namespace DotRecast.Detour.Extras.Jumplink
+namespace DotRecast.Detour.Extras.Jumplink;
+
+public class DtJumpSegment
 {
-    public class DtJumpSegment
-    {
-        public int groundSegment;
-        public int startSample;
-        public int samples;
-    }
+    public int groundSegment;
+    public int startSample;
+    public int samples;
 }

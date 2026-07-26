@@ -19,237 +19,276 @@ freely, subject to the following restrictions:
 using System.IO;
 using DotRecast.Core;
 
-namespace DotRecast.Detour.Io
+namespace DotRecast.Detour.Io;
+
+using static DtDetour;
+
+public class DtMeshDataReader
 {
-    using static DtDetour;
+    public const int DT_POLY_DETAIL_SIZE = 10;
+    public const int LINK_SIZEOF         = 16;
+    public const int LINK_SIZEOF32BIT    = 12;
 
-    public class DtMeshDataReader
+    public DtMeshData Read
+    (
+        BinaryReader stream,
+        int          maxVertPerPoly
+    )
     {
-        public const int DT_POLY_DETAIL_SIZE = 10;
-        public const int LINK_SIZEOF = 16;
-        public const int LINK_SIZEOF32BIT = 12;
+        var buf = RcIO.ToByteBuffer(stream);
+        return Read(buf, maxVertPerPoly, false);
+    }
 
-        public DtMeshData Read(BinaryReader stream, int maxVertPerPoly)
-        {
-            RcByteBuffer buf = RcIO.ToByteBuffer(stream);
-            return Read(buf, maxVertPerPoly, false);
-        }
+    public DtMeshData Read
+    (
+        RcByteBuffer buf,
+        int          maxVertPerPoly
+    ) =>
+        Read(buf, maxVertPerPoly, false);
 
-        public DtMeshData Read(RcByteBuffer buf, int maxVertPerPoly)
-        {
-            return Read(buf, maxVertPerPoly, false);
-        }
+    public DtMeshData Read32Bit
+    (
+        BinaryReader stream,
+        int          maxVertPerPoly
+    )
+    {
+        var buf = RcIO.ToByteBuffer(stream);
+        return Read(buf, maxVertPerPoly, true);
+    }
 
-        public DtMeshData Read32Bit(BinaryReader stream, int maxVertPerPoly)
-        {
-            RcByteBuffer buf = RcIO.ToByteBuffer(stream);
-            return Read(buf, maxVertPerPoly, true);
-        }
+    public DtMeshData Read32Bit
+    (
+        RcByteBuffer buf,
+        int          maxVertPerPoly
+    ) =>
+        Read(buf, maxVertPerPoly, true);
 
-        public DtMeshData Read32Bit(RcByteBuffer buf, int maxVertPerPoly)
-        {
-            return Read(buf, maxVertPerPoly, true);
-        }
+    public DtMeshData Read
+    (
+        RcByteBuffer buf,
+        int          maxVertPerPoly,
+        bool         is32Bit
+    )
+    {
+        var data   = new DtMeshData();
+        var header = new DtMeshHeader();
+        data.header  = header;
+        header.magic = buf.GetInt();
 
-        public DtMeshData Read(RcByteBuffer buf, int maxVertPerPoly, bool is32Bit)
+        if (header.magic != DT_NAVMESH_MAGIC)
         {
-            DtMeshData data = new DtMeshData();
-            DtMeshHeader header = new DtMeshHeader();
-            data.header = header;
-            header.magic = buf.GetInt();
+            header.magic = RcIO.SwapEndianness(header.magic);
             if (header.magic != DT_NAVMESH_MAGIC)
-            {
-                header.magic = RcIO.SwapEndianness(header.magic);
-                if (header.magic != DT_NAVMESH_MAGIC)
-                {
-                    throw new IOException("Invalid magic");
-                }
+                throw new IOException("Invalid magic");
 
-                buf.Order(buf.Order() == RcByteOrder.BIG_ENDIAN ? RcByteOrder.LITTLE_ENDIAN : RcByteOrder.BIG_ENDIAN);
-            }
+            buf.Order
+            (
+                buf.Order() == RcByteOrder.BIG_ENDIAN ?
+                    RcByteOrder.LITTLE_ENDIAN :
+                    RcByteOrder.BIG_ENDIAN
+            );
+        }
 
-            header.version = buf.GetInt();
-            if (header.version != DT_NAVMESH_VERSION)
-            {
-                if (header.version < DT_NAVMESH_VERSION_RECAST4J_FIRST
-                    || header.version > DT_NAVMESH_VERSION_RECAST4J_LAST)
-                {
-                    throw new IOException("Invalid version " + header.version);
-                }
-            }
+        header.version = buf.GetInt();
 
-            bool cCompatibility = header.version == DT_NAVMESH_VERSION;
-            header.x = buf.GetInt();
-            header.y = buf.GetInt();
-            header.layer = buf.GetInt();
-            header.userId = buf.GetInt();
-            header.polyCount = buf.GetInt();
-            header.vertCount = buf.GetInt();
-            header.maxLinkCount = buf.GetInt();
-            header.detailMeshCount = buf.GetInt();
-            header.detailVertCount = buf.GetInt();
-            header.detailTriCount = buf.GetInt();
-            header.bvNodeCount = buf.GetInt();
-            header.offMeshConCount = buf.GetInt();
-            header.offMeshBase = buf.GetInt();
-            header.walkableHeight = buf.GetFloat();
-            header.walkableRadius = buf.GetFloat();
-            header.walkableClimb = buf.GetFloat();
+        if (header.version != DT_NAVMESH_VERSION)
+        {
+            if (header.version < DT_NAVMESH_VERSION_RECAST4J_FIRST || header.version > DT_NAVMESH_VERSION_RECAST4J_LAST)
+                throw new IOException("Invalid version " + header.version);
+        }
 
-            header.bmin.X = buf.GetFloat();
-            header.bmin.Y = buf.GetFloat();
-            header.bmin.Z = buf.GetFloat();
+        var cCompatibility = header.version == DT_NAVMESH_VERSION;
+        header.x               = buf.GetInt();
+        header.y               = buf.GetInt();
+        header.layer           = buf.GetInt();
+        header.userId          = buf.GetInt();
+        header.polyCount       = buf.GetInt();
+        header.vertCount       = buf.GetInt();
+        header.maxLinkCount    = buf.GetInt();
+        header.detailMeshCount = buf.GetInt();
+        header.detailVertCount = buf.GetInt();
+        header.detailTriCount  = buf.GetInt();
+        header.bvNodeCount     = buf.GetInt();
+        header.offMeshConCount = buf.GetInt();
+        header.offMeshBase     = buf.GetInt();
+        header.walkableHeight  = buf.GetFloat();
+        header.walkableRadius  = buf.GetFloat();
+        header.walkableClimb   = buf.GetFloat();
 
-            header.bmax.X = buf.GetFloat();
-            header.bmax.Y = buf.GetFloat();
-            header.bmax.Z = buf.GetFloat();
+        header.bmin.X = buf.GetFloat();
+        header.bmin.Y = buf.GetFloat();
+        header.bmin.Z = buf.GetFloat();
 
-            header.bvQuantFactor = buf.GetFloat();
-            data.verts = ReadVerts(buf, header.vertCount);
-            data.polys = ReadPolys(buf, header, maxVertPerPoly);
+        header.bmax.X = buf.GetFloat();
+        header.bmax.Y = buf.GetFloat();
+        header.bmax.Z = buf.GetFloat();
+
+        header.bvQuantFactor = buf.GetFloat();
+        data.verts           = ReadVerts(buf, header.vertCount);
+        data.polys           = ReadPolys(buf, header, maxVertPerPoly);
+        if (cCompatibility)
+            buf.Position(buf.Position() + (header.maxLinkCount * GetSizeofLink(is32Bit)));
+
+        data.detailMeshes = ReadPolyDetails(buf, header, cCompatibility);
+        data.detailVerts  = ReadVerts(buf, header.detailVertCount);
+        data.detailTris   = ReadDTris(buf, header);
+        data.bvTree       = ReadBVTree(buf, header);
+        data.offMeshCons  = ReadOffMeshCons(buf, header);
+        return data;
+    }
+
+
+    public static int GetSizeofLink
+    (
+        bool is32Bit
+    ) =>
+        is32Bit ?
+            LINK_SIZEOF32BIT :
+            LINK_SIZEOF;
+
+    private float[] ReadVerts
+    (
+        RcByteBuffer buf,
+        int          count
+    )
+    {
+        var verts = new float[count * 3];
+        for (var i = 0; i < verts.Length; i++)
+            verts[i] = buf.GetFloat();
+
+        return verts;
+    }
+
+    private DtPoly[] ReadPolys
+    (
+        RcByteBuffer buf,
+        DtMeshHeader header,
+        int          maxVertPerPoly
+    )
+    {
+        var polys = new DtPoly[header.polyCount];
+
+        for (var i = 0; i < polys.Length; i++)
+        {
+            polys[i] = new DtPoly(i, maxVertPerPoly);
+            if (header.version < DT_NAVMESH_VERSION_RECAST4J_NO_POLY_FIRSTLINK)
+                buf.GetInt(); // polys[i].firstLink
+
+            for (var j = 0; j < polys[i].verts.Length; j++)
+                polys[i].verts[j] = buf.GetShort() & 0xFFFF;
+
+            for (var j = 0; j < polys[i].neis.Length; j++)
+                polys[i].neis[j] = buf.GetShort() & 0xFFFF;
+
+            polys[i].flags       = buf.GetShort() & 0xFFFF;
+            polys[i].vertCount   = buf.Get()      & 0xFF;
+            polys[i].areaAndtype = buf.Get()      & 0xFF;
+        }
+
+        return polys;
+    }
+
+    private DtPolyDetail[] ReadPolyDetails
+    (
+        RcByteBuffer buf,
+        DtMeshHeader header,
+        bool         cCompatibility
+    )
+    {
+        var polys = new DtPolyDetail[header.detailMeshCount];
+
+        for (var i = 0; i < polys.Length; i++)
+        {
+            var vertBase  = buf.GetInt();
+            var triBase   = buf.GetInt();
+            var vertCount = (byte)(buf.Get() & 0xFF);
+            var triCount  = (byte)(buf.Get() & 0xFF);
+            polys[i] = new DtPolyDetail(vertBase, triBase, vertCount, triCount);
             if (cCompatibility)
+                buf.GetShort(); // C struct padding
+        }
+
+        return polys;
+    }
+
+    private int[] ReadDTris
+    (
+        RcByteBuffer buf,
+        DtMeshHeader header
+    )
+    {
+        var tris = new int[4 * header.detailTriCount];
+        for (var i = 0; i < tris.Length; i++)
+            tris[i] = buf.Get() & 0xFF;
+
+        return tris;
+    }
+
+    private DtBVNode[] ReadBVTree
+    (
+        RcByteBuffer buf,
+        DtMeshHeader header
+    )
+    {
+        var nodes = new DtBVNode[header.bvNodeCount];
+
+        for (var i = 0; i < nodes.Length; i++)
+        {
+            nodes[i] = new DtBVNode();
+
+            if (header.version < DT_NAVMESH_VERSION_RECAST4J_32BIT_BVTREE)
             {
-                buf.Position(buf.Position() + header.maxLinkCount * GetSizeofLink(is32Bit));
+                nodes[i].bmin.X = buf.GetShort() & 0xFFFF;
+                nodes[i].bmin.Y = buf.GetShort() & 0xFFFF;
+                nodes[i].bmin.Z = buf.GetShort() & 0xFFFF;
+
+                nodes[i].bmax.X = buf.GetShort() & 0xFFFF;
+                nodes[i].bmax.Y = buf.GetShort() & 0xFFFF;
+                nodes[i].bmax.Z = buf.GetShort() & 0xFFFF;
+            }
+            else
+            {
+                nodes[i].bmin.X = buf.GetInt();
+                nodes[i].bmin.Y = buf.GetInt();
+                nodes[i].bmin.Z = buf.GetInt();
+
+                nodes[i].bmax.X = buf.GetInt();
+                nodes[i].bmax.Y = buf.GetInt();
+                nodes[i].bmax.Z = buf.GetInt();
             }
 
-            data.detailMeshes = ReadPolyDetails(buf, header, cCompatibility);
-            data.detailVerts = ReadVerts(buf, header.detailVertCount);
-            data.detailTris = ReadDTris(buf, header);
-            data.bvTree = ReadBVTree(buf, header);
-            data.offMeshCons = ReadOffMeshCons(buf, header);
-            return data;
+            nodes[i].i = buf.GetInt();
         }
 
+        return nodes;
+    }
 
-        public static int GetSizeofLink(bool is32Bit)
-        {
-            return is32Bit ? LINK_SIZEOF32BIT : LINK_SIZEOF;
-        }
+    private DtOffMeshConnection[] ReadOffMeshCons
+    (
+        RcByteBuffer buf,
+        DtMeshHeader header
+    )
+    {
+        var cons = new DtOffMeshConnection[header.offMeshConCount];
 
-        private float[] ReadVerts(RcByteBuffer buf, int count)
+        for (var i = 0; i < cons.Length; i++)
         {
-            float[] verts = new float[count * 3];
-            for (int i = 0; i < verts.Length; i++)
+            cons[i] = new DtOffMeshConnection();
+
+            for (var j = 0; j < 2; j++)
             {
-                verts[i] = buf.GetFloat();
+                cons[i].pos[j].X = buf.GetFloat();
+                cons[i].pos[j].Y = buf.GetFloat();
+                cons[i].pos[j].Z = buf.GetFloat();
             }
 
-            return verts;
+            cons[i].rad    = buf.GetFloat();
+            cons[i].poly   = buf.GetShort() & 0xFFFF;
+            cons[i].flags  = buf.Get()      & 0xFF;
+            cons[i].side   = buf.Get()      & 0xFF;
+            cons[i].userId = buf.GetInt();
         }
 
-        private DtPoly[] ReadPolys(RcByteBuffer buf, DtMeshHeader header, int maxVertPerPoly)
-        {
-            DtPoly[] polys = new DtPoly[header.polyCount];
-            for (int i = 0; i < polys.Length; i++)
-            {
-                polys[i] = new DtPoly(i, maxVertPerPoly);
-                if (header.version < DT_NAVMESH_VERSION_RECAST4J_NO_POLY_FIRSTLINK)
-                {
-                    buf.GetInt(); // polys[i].firstLink
-                }
-
-                for (int j = 0; j < polys[i].verts.Length; j++)
-                {
-                    polys[i].verts[j] = buf.GetShort() & 0xFFFF;
-                }
-
-                for (int j = 0; j < polys[i].neis.Length; j++)
-                {
-                    polys[i].neis[j] = buf.GetShort() & 0xFFFF;
-                }
-
-                polys[i].flags = buf.GetShort() & 0xFFFF;
-                polys[i].vertCount = buf.Get() & 0xFF;
-                polys[i].areaAndtype = buf.Get() & 0xFF;
-            }
-
-            return polys;
-        }
-
-        private DtPolyDetail[] ReadPolyDetails(RcByteBuffer buf, DtMeshHeader header, bool cCompatibility)
-        {
-            DtPolyDetail[] polys = new DtPolyDetail[header.detailMeshCount];
-            for (int i = 0; i < polys.Length; i++)
-            {
-                int vertBase = buf.GetInt();
-                int triBase = buf.GetInt();
-                byte vertCount = (byte)(buf.Get() & 0xFF);
-                byte triCount = (byte)(buf.Get() & 0xFF);
-                polys[i] = new DtPolyDetail(vertBase, triBase, vertCount, triCount);
-                if (cCompatibility)
-                {
-                    buf.GetShort(); // C struct padding
-                }
-            }
-
-            return polys;
-        }
-
-        private int[] ReadDTris(RcByteBuffer buf, DtMeshHeader header)
-        {
-            int[] tris = new int[4 * header.detailTriCount];
-            for (int i = 0; i < tris.Length; i++)
-            {
-                tris[i] = buf.Get() & 0xFF;
-            }
-
-            return tris;
-        }
-
-        private DtBVNode[] ReadBVTree(RcByteBuffer buf, DtMeshHeader header)
-        {
-            DtBVNode[] nodes = new DtBVNode[header.bvNodeCount];
-            for (int i = 0; i < nodes.Length; i++)
-            {
-                nodes[i] = new DtBVNode();
-                if (header.version < DT_NAVMESH_VERSION_RECAST4J_32BIT_BVTREE)
-                {
-                    nodes[i].bmin.X = buf.GetShort() & 0xFFFF;
-                    nodes[i].bmin.Y = buf.GetShort() & 0xFFFF;
-                    nodes[i].bmin.Z = buf.GetShort() & 0xFFFF;
-
-                    nodes[i].bmax.X = buf.GetShort() & 0xFFFF;
-                    nodes[i].bmax.Y = buf.GetShort() & 0xFFFF;
-                    nodes[i].bmax.Z = buf.GetShort() & 0xFFFF;
-                }
-                else
-                {
-                    nodes[i].bmin.X = buf.GetInt();
-                    nodes[i].bmin.Y = buf.GetInt();
-                    nodes[i].bmin.Z = buf.GetInt();
-
-                    nodes[i].bmax.X = buf.GetInt();
-                    nodes[i].bmax.Y = buf.GetInt();
-                    nodes[i].bmax.Z = buf.GetInt();
-                }
-
-                nodes[i].i = buf.GetInt();
-            }
-
-            return nodes;
-        }
-
-        private DtOffMeshConnection[] ReadOffMeshCons(RcByteBuffer buf, DtMeshHeader header)
-        {
-            DtOffMeshConnection[] cons = new DtOffMeshConnection[header.offMeshConCount];
-            for (int i = 0; i < cons.Length; i++)
-            {
-                cons[i] = new DtOffMeshConnection();
-                for (int j = 0; j < 2; j++)
-                {
-                    cons[i].pos[j].X = buf.GetFloat();
-                    cons[i].pos[j].Y = buf.GetFloat();
-                    cons[i].pos[j].Z = buf.GetFloat();
-                }
-
-                cons[i].rad = buf.GetFloat();
-                cons[i].poly = buf.GetShort() & 0xFFFF;
-                cons[i].flags = buf.Get() & 0xFF;
-                cons[i].side = buf.Get() & 0xFF;
-                cons[i].userId = buf.GetInt();
-            }
-
-            return cons;
-        }
+        return cons;
     }
 }

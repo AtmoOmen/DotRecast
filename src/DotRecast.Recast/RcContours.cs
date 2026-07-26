@@ -38,9 +38,9 @@ namespace DotRecast.Recast
             int dirp = (dir + 1) & 0x3;
 
             int[] regs =
-            {
+            [
                 0, 0, 0, 0
-            };
+            ];
 
             // Combine region and area codes in order to prevent
             // border vertices which are in between two areas to be removed.
@@ -616,7 +616,7 @@ namespace DotRecast.Recast
                 }
             }
 
-            return new int[] { minx, minz, leftmost };
+            return [minx, minz, leftmost];
         }
 
         private static void MergeRegionHoles(RcContext ctx, RcContourRegion region)
@@ -791,8 +791,8 @@ namespace DotRecast.Recast
 
             ctx.StopTimer(RcTimerLabel.RC_TIMER_BUILD_CONTOURS_TRACE);
 
-            List<int> verts = new List<int>(256);
-            List<int> simplified = new List<int>(64);
+            List<int> verts      = [with(256)];
+            List<int> simplified = [with(64)];
 
             for (int y = 0; y < h; ++y)
             {

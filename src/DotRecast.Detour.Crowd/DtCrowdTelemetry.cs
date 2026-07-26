@@ -84,7 +84,7 @@ namespace DotRecast.Detour.Crowd
             long duration = RcFrequency.Ticks - _executionTimings[name];
             if (!_executionTimingSamples.TryGetValue(name, out var cb))
             {
-                cb = new RcCyclicBuffer<long>(TIMING_SAMPLES);
+                cb = [with(TIMING_SAMPLES)];
                 _executionTimingSamples.Add(name, cb);
             }
 

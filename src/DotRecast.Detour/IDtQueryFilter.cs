@@ -20,13 +20,29 @@ freely, subject to the following restrictions:
 
 using DotRecast.Core.Numerics;
 
-namespace DotRecast.Detour
-{
-    public interface IDtQueryFilter
-    {
-        bool PassFilter(long refs, DtMeshTile tile, DtPoly poly);
+namespace DotRecast.Detour;
 
-        float GetCost(RcVec3f pa, RcVec3f pb, long prevRef, DtMeshTile prevTile, DtPoly prevPoly, long curRef, DtMeshTile curTile,
-            DtPoly curPoly, long nextRef, DtMeshTile nextTile, DtPoly nextPoly);
-    }
+public interface IDtQueryFilter
+{
+    bool PassFilter
+    (
+        long       refs,
+        DtMeshTile tile,
+        DtPoly     poly
+    );
+
+    float GetCost
+    (
+        RcVec3f    pa,
+        RcVec3f    pb,
+        long       prevRef,
+        DtMeshTile prevTile,
+        DtPoly     prevPoly,
+        long       curRef,
+        DtMeshTile curTile,
+        DtPoly     curPoly,
+        long       nextRef,
+        DtMeshTile nextTile,
+        DtPoly     nextPoly
+    );
 }

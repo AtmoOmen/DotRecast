@@ -97,15 +97,15 @@ namespace DotRecast.Recast
         /// @see rcPolyMesh::polys
         public const int RC_MESH_NULL_IDX = 0xffff;
 
-        private static readonly int[] DirOffsetX = { -1, 0, 1, 0, };
-        private static readonly int[] DirOffsetY = { 0, 1, 0, -1 };
-        private static readonly int[] DirForOffset = { 3, 0, -1, 2, 1 };
+        private static readonly int[] DirOffsetX   = [-1, 0, 1, 0];
+        private static readonly int[] DirOffsetY   = [0, 1, 0, -1];
+        private static readonly int[] DirForOffset = [3, 0, -1, 2, 1];
 
         /// Sets the neighbor connection data for the specified direction.
         /// @param[in]		span			The span to update.
         /// @param[in]		direction		The direction to set. [Limits: 0 <= value < 4]
         /// @param[in]		neighborIndex	The index of the neighbor span.
-        public static void SetCon(RcCompactSpanBuilder span, int direction, int neighborIndex)
+        public static void SetCon(ref RcCompactSpanBuilder span, int direction, int neighborIndex)
         {
             int shift = direction * 6;
             int con = span.con;

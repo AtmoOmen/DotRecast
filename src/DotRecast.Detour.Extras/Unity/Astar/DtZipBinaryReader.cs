@@ -21,18 +21,21 @@ using System.IO;
 using System.IO.Compression;
 using DotRecast.Core;
 
-namespace DotRecast.Detour.Extras.Unity.Astar
+namespace DotRecast.Detour.Extras.Unity.Astar;
+
+public abstract class DtZipBinaryReader
 {
-    public abstract class DtZipBinaryReader
+    protected RcByteBuffer ToByteBuffer
+    (
+        ZipArchive file,
+        string     filename
+    )
     {
-        protected RcByteBuffer ToByteBuffer(ZipArchive file, string filename)
-        {
-            ZipArchiveEntry graphReferences = file.GetEntry(filename);
-            using var entryStream = graphReferences.Open();
-            using var br = new BinaryReader(entryStream);
-            RcByteBuffer buffer = RcIO.ToByteBuffer(br);
-            buffer.Order(RcByteOrder.LITTLE_ENDIAN);
-            return buffer;
-        }
+        var       graphReferences = file.GetEntry(filename);
+        using var entryStream     = graphReferences.Open();
+        using var br              = new BinaryReader(entryStream);
+        var       buffer          = RcIO.ToByteBuffer(br);
+        buffer.Order(RcByteOrder.LITTLE_ENDIAN);
+        return buffer;
     }
 }

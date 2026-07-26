@@ -19,10 +19,13 @@ freely, subject to the following restrictions:
 
 using DotRecast.Core.Numerics;
 
-namespace DotRecast.Detour
+namespace DotRecast.Detour;
+
+public interface IDtQueryHeuristic
 {
-    public interface IDtQueryHeuristic
-    {
-        float GetCost(RcVec3f neighbourPos, RcVec3f endPos);
-    }
+    float GetCost
+    (
+        RcVec3f neighbourPos,
+        RcVec3f endPos
+    );
 }

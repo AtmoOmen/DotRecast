@@ -20,20 +20,19 @@ freely, subject to the following restrictions:
 
 using DotRecast.Core.Numerics;
 
-namespace DotRecast.Detour
+namespace DotRecast.Detour;
+
+public struct DtQueryData
 {
-    public struct DtQueryData
-    {
-        public DtStatus status;
-        public DtNode lastBestNode;
-        public float lastBestNodeCost;
-        public long startRef;
-        public long endRef;
-        public RcVec3f startPos;
-        public RcVec3f endPos;
-        public IDtQueryFilter filter;
-        public IDtQueryHeuristic heuristic;
-        public int options;
-        public float raycastLimitSqr;
-    }
+    public DtStatus          status;
+    public DtNode            lastBestNode;
+    public float             lastBestNodeCost;
+    public long              startRef;
+    public long              endRef;
+    public RcVec3f           startPos;
+    public RcVec3f           endPos;
+    public IDtQueryFilter    filter;
+    public IDtQueryHeuristic heuristic;
+    public int               options;
+    public float             raycastLimitSqr;
 }

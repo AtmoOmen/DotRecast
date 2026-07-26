@@ -19,26 +19,32 @@ freely, subject to the following restrictions:
 
 using System.Collections.Generic;
 
-namespace DotRecast.Detour.Extras.Unity.Astar
-{
-    public class DtGraphData
-    {
-        public readonly DtPathfindingRecastGraphMeta meta;
-        public readonly int[] indexToNode;
-        public readonly DtNodeLink2[] nodeLinks2;
-        public readonly List<DtGraphMeta> graphMeta;
-        public readonly List<DtGraphMeshData> graphMeshData;
-        public readonly List<List<int[]>> graphConnections;
+namespace DotRecast.Detour.Extras.Unity.Astar;
 
-        public DtGraphData(DtPathfindingRecastGraphMeta meta, int[] indexToNode, DtNodeLink2[] nodeLinks2, List<DtGraphMeta> graphMeta,
-            List<DtGraphMeshData> graphMeshData, List<List<int[]>> graphConnections)
-        {
-            this.meta = meta;
-            this.indexToNode = indexToNode;
-            this.nodeLinks2 = nodeLinks2;
-            this.graphMeta = graphMeta;
-            this.graphMeshData = graphMeshData;
-            this.graphConnections = graphConnections;
-        }
+public class DtGraphData
+{
+    public readonly DtPathfindingRecastGraphMeta meta;
+    public readonly int[]                        indexToNode;
+    public readonly DtNodeLink2[]                nodeLinks2;
+    public readonly List<DtGraphMeta>            graphMeta;
+    public readonly List<DtGraphMeshData>        graphMeshData;
+    public readonly List<List<int[]>>            graphConnections;
+
+    public DtGraphData
+    (
+        DtPathfindingRecastGraphMeta meta,
+        int[]                        indexToNode,
+        DtNodeLink2[]                nodeLinks2,
+        List<DtGraphMeta>            graphMeta,
+        List<DtGraphMeshData>        graphMeshData,
+        List<List<int[]>>            graphConnections
+    )
+    {
+        this.meta             = meta;
+        this.indexToNode      = indexToNode;
+        this.nodeLinks2       = nodeLinks2;
+        this.graphMeta        = graphMeta;
+        this.graphMeshData    = graphMeshData;
+        this.graphConnections = graphConnections;
     }
 }

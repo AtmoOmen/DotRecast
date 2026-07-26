@@ -1,9 +1,8 @@
-namespace DotRecast.Detour
+namespace DotRecast.Detour;
+
+public enum DtConvexConvexInFlag
 {
-    public enum DtConvexConvexInFlag
-    {
-        Pin,
-        Qin,
-        Unknown,
-    }
+    Pin,
+    Qin,
+    Unknown
 }

@@ -34,7 +34,7 @@ namespace DotRecast.Detour.Extras.Jumplink
                         else
                         {
                             var queue = new Queue<int[]>();
-                            queue.Enqueue(new int[] { i, j });
+                            queue.Enqueue([i, j]);
                             Fill(es, sampleGrid, queue, acfg.agentClimb, region);
                             region++;
                         }
@@ -123,7 +123,7 @@ namespace DotRecast.Detour.Extras.Jumplink
             DtGroundSample q = es.end[j].gsamples[i];
             if (q.validTrajectory && MathF.Abs(q.p.Y - h) < agentClimb)
             {
-                queue.Enqueue(new int[] { i, j });
+                queue.Enqueue([i, j]);
             }
         }
     }

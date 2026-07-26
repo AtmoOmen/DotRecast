@@ -19,80 +19,95 @@ freely, subject to the following restrictions:
 
 using System;
 
-namespace DotRecast.Detour.Extras
+namespace DotRecast.Detour.Extras;
+
+public static class DtPolyUtils
 {
-    public static class DtPolyUtils
+    // Find edge shared by 2 polygons within the same tile
+    public static int FindEdge
+    (
+        DtPoly     node,
+        DtPoly     neighbour,
+        DtMeshData tile,
+        DtMeshData neighbourTile
+    )
     {
-        // Find edge shared by 2 polygons within the same tile
-        public static int FindEdge(DtPoly node, DtPoly neighbour, DtMeshData tile, DtMeshData neighbourTile)
+        // Compare indices first assuming there are no duplicate vertices
+        for (var i = 0; i < node.vertCount; i++)
         {
-            // Compare indices first assuming there are no duplicate vertices
-            for (int i = 0; i < node.vertCount; i++)
-            {
-                int j = (i + 1) % node.vertCount;
-                for (int k = 0; k < neighbour.vertCount; k++)
-                {
-                    int l = (k + 1) % neighbour.vertCount;
-                    if ((node.verts[i] == neighbour.verts[l] && node.verts[j] == neighbour.verts[k])
-                        || (node.verts[i] == neighbour.verts[k] && node.verts[j] == neighbour.verts[l]))
-                    {
-                        return i;
-                    }
-                }
-            }
+            var j = (i + 1) % node.vertCount;
 
-            // Fall back to comparing actual positions in case of duplicate vertices
-            for (int i = 0; i < node.vertCount; i++)
+            for (var k = 0; k < neighbour.vertCount; k++)
             {
-                int j = (i + 1) % node.vertCount;
-                for (int k = 0; k < neighbour.vertCount; k++)
-                {
-                    int l = (k + 1) % neighbour.vertCount;
-                    if ((SamePosition(tile.verts, node.verts[i], neighbourTile.verts, neighbour.verts[l])
-                         && SamePosition(tile.verts, node.verts[j], neighbourTile.verts, neighbour.verts[k]))
-                        || (SamePosition(tile.verts, node.verts[i], neighbourTile.verts, neighbour.verts[k])
-                            && SamePosition(tile.verts, node.verts[j], neighbourTile.verts, neighbour.verts[l])))
-                    {
-                        return i;
-                    }
-                }
+                var l = (k + 1) % neighbour.vertCount;
+                if ((node.verts[i] == neighbour.verts[l] && node.verts[j] == neighbour.verts[k]) ||
+                    (node.verts[i] == neighbour.verts[k] && node.verts[j] == neighbour.verts[l]))
+                    return i;
             }
-
-            return -1;
         }
 
-        private static bool SamePosition(float[] verts, int v, float[] verts2, int v2)
+        // Fall back to comparing actual positions in case of duplicate vertices
+        for (var i = 0; i < node.vertCount; i++)
         {
-            for (int i = 0; i < 3; i++)
-            {
-                if (MathF.Abs(verts[3 * v + i] - verts2[3 * v2 + 1]) > float.Epsilon)
-                {
-                    return false;
-                }
-            }
+            var j = (i + 1) % node.vertCount;
 
-            return true;
+            for (var k = 0; k < neighbour.vertCount; k++)
+            {
+                var l = (k + 1) % neighbour.vertCount;
+                if ((SamePosition
+                         (tile.verts, node.verts[i], neighbourTile.verts, neighbour.verts[l]) &&
+                     SamePosition(tile.verts, node.verts[j], neighbourTile.verts, neighbour.verts[k])) ||
+                    (SamePosition
+                         (tile.verts, node.verts[i], neighbourTile.verts, neighbour.verts[k]) &&
+                     SamePosition(tile.verts, node.verts[j], neighbourTile.verts, neighbour.verts[l])))
+                    return i;
+            }
         }
 
-        // Find edge closest to the given coordinate
-        public static int FindEdge(DtPoly node, DtMeshData tile, float value, int comp)
-        {
-            float error = float.MaxValue;
-            int edge = 0;
-            for (int i = 0; i < node.vertCount; i++)
-            {
-                int j = (i + 1) % node.vertCount;
-                float v1 = tile.verts[3 * node.verts[i] + comp] - value;
-                float v2 = tile.verts[3 * node.verts[j] + comp] - value;
-                float d = v1 * v1 + v2 * v2;
-                if (d < error)
-                {
-                    error = d;
-                    edge = i;
-                }
-            }
+        return -1;
+    }
 
-            return edge;
+    private static bool SamePosition
+    (
+        float[] verts,
+        int     v,
+        float[] verts2,
+        int     v2
+    )
+    {
+        for (var i = 0; i < 3; i++)
+            if (MathF.Abs(verts[(3 * v) + i] - verts2[(3 * v2) + 1]) > float.Epsilon)
+                return false;
+
+        return true;
+    }
+
+    // Find edge closest to the given coordinate
+    public static int FindEdge
+    (
+        DtPoly     node,
+        DtMeshData tile,
+        float      value,
+        int        comp
+    )
+    {
+        var error = float.MaxValue;
+        var edge  = 0;
+
+        for (var i = 0; i < node.vertCount; i++)
+        {
+            var j  = (i + 1) % node.vertCount;
+            var v1 = tile.verts[(3 * node.verts[i]) + comp] - value;
+            var v2 = tile.verts[(3 * node.verts[j]) + comp] - value;
+            var d  = (v1 * v1)                              + (v2 * v2);
+
+            if (d < error)
+            {
+                error = d;
+                edge  = i;
+            }
         }
+
+        return edge;
     }
 }

@@ -40,25 +40,27 @@ namespace DotRecast.Detour.Dynamic
             {
                 for (int x = 0; x < source.width; x++)
                 {
-                    RcSpan span = source.spans[pz + x];
-                    RcSpan prevCopy = null;
-                    while (span != null)
+                    var spanIndex = source.spans[pz + x];
+                    uint prevCopyIndex = 0;
+                    while (spanIndex != 0)
                     {
-                        RcSpan copy = new RcSpan();
+                        ref var span = ref source.Span(spanIndex);
+                        var copyIndex = clone.spanPool.Alloc();
+                        ref var copy = ref clone.Span(copyIndex);
                         copy.smin = span.smin;
                         copy.smax = span.smax;
                         copy.area = span.area;
-                        if (prevCopy == null)
+                        if (prevCopyIndex == 0)
                         {
-                            clone.spans[pz + x] = copy;
+                            clone.spans[pz + x] = copyIndex;
                         }
                         else
                         {
-                            prevCopy.next = copy;
+                            clone.Span(prevCopyIndex).next = copyIndex;
                         }
 
-                        prevCopy = copy;
-                        span = span.next;
+                        prevCopyIndex = copyIndex;
+                        spanIndex = span.next;
                     }
                 }
             }

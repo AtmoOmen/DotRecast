@@ -32,7 +32,7 @@ namespace DotRecast.Recast.Geom
         {
             int nchunks = (ntris + trisPerChunk - 1) / trisPerChunk;
 
-            cm.nodes = new List<RcChunkyTriMeshNode>(nchunks);
+            cm.nodes = [with(nchunks)];
             cm.ntris = ntris;
 
             // Build tree

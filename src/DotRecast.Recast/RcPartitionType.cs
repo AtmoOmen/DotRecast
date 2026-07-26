@@ -8,7 +8,7 @@ namespace DotRecast.Recast
         public static readonly RcPartitionType MONOTONE = new RcPartitionType(RcPartition.MONOTONE);
         public static readonly RcPartitionType LAYERS = new RcPartitionType(RcPartition.LAYERS);
 
-        public static readonly RcPartitionType[] Values = { WATERSHED, MONOTONE, LAYERS };
+        public static readonly RcPartitionType[] Values = [WATERSHED, MONOTONE, LAYERS];
 
         public readonly RcPartition EnumType;
         public readonly int Value;

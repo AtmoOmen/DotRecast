@@ -18,15 +18,14 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 */
 
-namespace DotRecast.Recast
+namespace DotRecast.Recast;
+
+/// Represents a span in a heightfield.
+/// @see rcHeightfield
+public struct RcSpan
 {
-    /// Represents a span in a heightfield.
-    /// @see rcHeightfield
-    public struct RcSpan
-    {
-        public int smin; //< The lower limit of the span. (Inclusive) [Limit: < #smax]
-        public int smax; //< The upper limit of the span. (Exclusive) [Limit: <= #RC_SPAN_MAX_HEIGHT]
-        public int area; //< The area id assigned to the span.
-        public uint next; //< The next span index higher up in column, or the next free span in the pool.
-    }
+    public int  smin; //< The lower limit of the span. (Inclusive) [Limit: < #smax]
+    public int  smax; //< The upper limit of the span. (Exclusive) [Limit: <= #RC_SPAN_MAX_HEIGHT]
+    public int  area; //< The area id assigned to the span.
+    public uint next; //< The next span index higher up in column, or the next free span in the pool.
 }

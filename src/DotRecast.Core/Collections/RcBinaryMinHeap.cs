@@ -23,7 +23,7 @@ namespace DotRecast.Core.Collections
             if (capacity <= 0)
                 throw new ArgumentException("capacity must greater than zero");
 
-            _items = new List<T>(capacity);
+            _items       = [with(capacity)];
             _comparision = comparison;
         }
 

@@ -1,9 +1,13 @@
 using DotRecast.Recast;
 
-namespace DotRecast.Detour.Extras.Jumplink
+namespace DotRecast.Detour.Extras.Jumplink;
+
+public interface IDtGroundSampler
 {
-    public interface IDtGroundSampler
-    {
-        void Sample(DtJumpLinkBuilderConfig acfg, RcBuilderResult result, DtEdgeSampler es);
-    }
+    void Sample
+    (
+        DtJumpLinkBuilderConfig acfg,
+        RcBuilderResult         result,
+        DtEdgeSampler           es
+    );
 }

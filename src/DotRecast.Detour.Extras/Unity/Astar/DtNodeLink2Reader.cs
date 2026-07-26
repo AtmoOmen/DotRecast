@@ -18,38 +18,42 @@ freely, subject to the following restrictions:
 */
 
 using System.IO.Compression;
-using DotRecast.Core;
 using DotRecast.Core.Numerics;
 
-namespace DotRecast.Detour.Extras.Unity.Astar
-{
-    public class DtNodeLink2Reader : DtZipBinaryReader
-    {
-        public DtNodeLink2[] Read(ZipArchive file, string filename, int[] indexToNode)
-        {
-            RcByteBuffer buffer = ToByteBuffer(file, filename);
-            int linkCount = buffer.GetInt();
-            DtNodeLink2[] links = new DtNodeLink2[linkCount];
-            for (int i = 0; i < linkCount; i++)
-            {
-                long linkID = buffer.GetLong();
-                int startNode = indexToNode[buffer.GetInt()];
-                int endNode = indexToNode[buffer.GetInt()];
-                int connectedNode1 = buffer.GetInt();
-                int connectedNode2 = buffer.GetInt();
-                RcVec3f clamped1 = new RcVec3f();
-                clamped1.X = buffer.GetFloat();
-                clamped1.Y = buffer.GetFloat();
-                clamped1.Z = buffer.GetFloat();
-                RcVec3f clamped2 = new RcVec3f();
-                clamped2.X = buffer.GetFloat();
-                clamped2.Y = buffer.GetFloat();
-                clamped2.Z = buffer.GetFloat();
-                bool postScanCalled = buffer.Get() != 0;
-                links[i] = new DtNodeLink2(linkID, startNode, endNode, clamped1, clamped2);
-            }
+namespace DotRecast.Detour.Extras.Unity.Astar;
 
-            return links;
+public class DtNodeLink2Reader : DtZipBinaryReader
+{
+    public DtNodeLink2[] Read
+    (
+        ZipArchive file,
+        string     filename,
+        int[]      indexToNode
+    )
+    {
+        var buffer    = ToByteBuffer(file, filename);
+        var linkCount = buffer.GetInt();
+        var links     = new DtNodeLink2[linkCount];
+
+        for (var i = 0; i < linkCount; i++)
+        {
+            var linkID         = buffer.GetLong();
+            var startNode      = indexToNode[buffer.GetInt()];
+            var endNode        = indexToNode[buffer.GetInt()];
+            var connectedNode1 = buffer.GetInt();
+            var connectedNode2 = buffer.GetInt();
+            var clamped1       = new RcVec3f();
+            clamped1.X = buffer.GetFloat();
+            clamped1.Y = buffer.GetFloat();
+            clamped1.Z = buffer.GetFloat();
+            var clamped2 = new RcVec3f();
+            clamped2.X = buffer.GetFloat();
+            clamped2.Y = buffer.GetFloat();
+            clamped2.Z = buffer.GetFloat();
+            var postScanCalled = buffer.Get() != 0;
+            links[i] = new DtNodeLink2(linkID, startNode, endNode, clamped1, clamped2);
         }
+
+        return links;
     }
 }

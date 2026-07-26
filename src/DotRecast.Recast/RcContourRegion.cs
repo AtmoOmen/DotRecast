@@ -1,9 +1,8 @@
-namespace DotRecast.Recast
+namespace DotRecast.Recast;
+
+public class RcContourRegion
 {
-    public class RcContourRegion
-    {
-        public RcContour outline;
-        public RcContourHole[] holes;
-        public int nholes;
-    }
+    public RcContour       outline;
+    public RcContourHole[] holes;
+    public int             nholes;
 }

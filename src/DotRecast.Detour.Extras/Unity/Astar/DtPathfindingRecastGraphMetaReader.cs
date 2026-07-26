@@ -20,40 +20,38 @@ freely, subject to the following restrictions:
 using System;
 using System.IO;
 using System.IO.Compression;
-
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 
-namespace DotRecast.Detour.Extras.Unity.Astar
+namespace DotRecast.Detour.Extras.Unity.Astar;
+
+public class DtPathfindingRecastGraphMetaReader
 {
-    public class DtPathfindingRecastGraphMetaReader
+    public DtPathfindingRecastGraphMeta Read
+    (
+        ZipArchive file,
+        string     filename
+    )
     {
-        public DtPathfindingRecastGraphMeta Read(ZipArchive file, string filename)
-        {
-            ZipArchiveEntry entry = file.GetEntry(filename);
-            using StreamReader reader = new StreamReader(entry.Open());
+        var       entry  = file.GetEntry(filename);
+        using var reader = new StreamReader(entry.Open());
 
 
-            var json = reader.ReadToEnd();
+        var json = reader.ReadToEnd();
 
-            // fixed : version 표기는 문자열이여야 한다
-            string pattern = @"(\d+\.\d+\.\d+),";
-            string replacement = "\"$1\",";
-            var regex = new Regex(pattern);
-            json = regex.Replace(json, replacement);
+        // fixed : version 표기는 문자열이여야 한다
+        var pattern     = @"(\d+\.\d+\.\d+),";
+        var replacement = "\"$1\",";
+        var regex       = new Regex(pattern);
+        json = regex.Replace(json, replacement);
 
-            var meta = JsonConvert.DeserializeObject<DtPathfindingRecastGraphMeta>(json);
-            if (!meta.IsSupportedType())
-            {
-                throw new ArgumentException("Unsupported graph type " + string.Join(", ", meta.typeNames));
-            }
+        var meta = JsonConvert.DeserializeObject<DtPathfindingRecastGraphMeta>(json);
+        if (!meta.IsSupportedType())
+            throw new ArgumentException("Unsupported graph type " + string.Join(", ", meta.typeNames));
 
-            if (!meta.IsSupportedVersion())
-            {
-                throw new ArgumentException("Unsupported version " + meta.version);
-            }
+        if (!meta.IsSupportedVersion())
+            throw new ArgumentException("Unsupported version " + meta.version);
 
-            return meta;
-        }
+        return meta;
     }
 }

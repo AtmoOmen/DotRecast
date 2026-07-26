@@ -19,35 +19,42 @@ freely, subject to the following restrictions:
 
 using System.Collections.Generic;
 using System.IO.Compression;
-using DotRecast.Core;
 
-namespace DotRecast.Detour.Extras.Unity.Astar
+namespace DotRecast.Detour.Extras.Unity.Astar;
+
+internal class DtGraphConnectionReader : DtZipBinaryReader
 {
-    class DtGraphConnectionReader : DtZipBinaryReader
+    public List<int[]> Read
+    (
+        ZipArchive                   file,
+        string                       filename,
+        DtPathfindingRecastGraphMeta meta,
+        int[]                        indexToNode
+    )
     {
-        public List<int[]> Read(ZipArchive file, string filename, DtPathfindingRecastGraphMeta meta, int[] indexToNode)
+        var connections = new List<int[]>();
+        var buffer      = ToByteBuffer(file, filename);
+
+        while (buffer.Remaining() > 0)
         {
-            List<int[]> connections = new List<int[]>();
-            RcByteBuffer buffer = ToByteBuffer(file, filename);
-            while (buffer.Remaining() > 0)
+            var count           = buffer.GetInt();
+            var nodeConnections = new int[count];
+            connections.Add(nodeConnections);
+
+            for (var i = 0; i < count; i++)
             {
-                int count = buffer.GetInt();
-                int[] nodeConnections = new int[count];
-                connections.Add(nodeConnections);
-                for (int i = 0; i < count; i++)
+                var nodeIndex = buffer.GetInt();
+                nodeConnections[i] = indexToNode[nodeIndex];
+                // XXX: Is there anything we can do with the cost?
+                var cost = buffer.GetInt();
+
+                if (meta.IsVersionAtLeast(DtPathfindingRecastGraphMeta.UPDATED_STRUCT_VERSION))
                 {
-                    int nodeIndex = buffer.GetInt();
-                    nodeConnections[i] = indexToNode[nodeIndex];
-                    // XXX: Is there anything we can do with the cost?
-                    int cost = buffer.GetInt();
-                    if (meta.IsVersionAtLeast(DtPathfindingRecastGraphMeta.UPDATED_STRUCT_VERSION))
-                    {
-                        byte shapeEdge = buffer.Get();
-                    }
+                    var shapeEdge = buffer.Get();
                 }
             }
-
-            return connections;
         }
+
+        return connections;
     }
 }

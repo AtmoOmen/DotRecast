@@ -1,34 +1,44 @@
 using System;
-using System.Collections.Generic;
 using DotRecast.Core.Numerics;
 
-namespace DotRecast.Detour
+namespace DotRecast.Detour;
+
+public class DtNavMeshQueryMock : DtNavMeshQuery
 {
-    public class DtNavMeshQueryMock : DtNavMeshQuery
+    private readonly DtStraightPath[] _straightPath;
+    private readonly DtStatus         _status;
+
+    public DtNavMeshQueryMock
+    (
+        DtStraightPath[] straightPath,
+        DtStatus         status
+    )
+        : base(null)
     {
-        private readonly DtStraightPath[] _straightPath;
-        private readonly DtStatus _status;
+        _straightPath = straightPath;
+        _status       = status;
+    }
 
-        public DtNavMeshQueryMock(DtStraightPath[] straightPath, DtStatus status)
-            : base(null)
+    public override DtStatus FindStraightPath
+    (
+        RcVec3f              startPos,
+        RcVec3f              endPos,
+        Span<long>           path,
+        int                  pathSize,
+        Span<DtStraightPath> straightPath,
+        out int              straightPathCount,
+        int                  maxStraightPath,
+        int                  options
+    )
+    {
+        straightPathCount = 0;
+
+        for (var i = 0; i < _straightPath.Length && i < maxStraightPath; ++i)
         {
-            _straightPath = straightPath;
-            _status = status;
+            straightPath[i]   =  _straightPath[i];
+            straightPathCount += 1;
         }
 
-        public override DtStatus FindStraightPath(RcVec3f startPos, RcVec3f endPos,
-            Span<long> path, int pathSize,
-            Span<DtStraightPath> straightPath, out int straightPathCount, int maxStraightPath,
-            int options)
-        {
-            straightPathCount = 0;
-            for (int i = 0; i < _straightPath.Length && i < maxStraightPath; ++i)
-            {
-                straightPath[i] = _straightPath[i];
-                straightPathCount += 1;
-            }
-
-            return _status;
-        }
+        return _status;
     }
 }

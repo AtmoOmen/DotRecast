@@ -17,12 +17,11 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 */
 
-namespace DotRecast.Detour.Crowd
+namespace DotRecast.Detour.Crowd;
+
+public class DtPathQueryResult
 {
-    public class DtPathQueryResult
-    {
-        public DtStatus status;
-        public long[] path;
-        public int npath;
-    }
+    public DtStatus status;
+    public long[]   path;
+    public int      npath;
 }

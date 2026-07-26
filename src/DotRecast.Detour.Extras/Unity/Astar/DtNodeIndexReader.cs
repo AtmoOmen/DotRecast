@@ -18,25 +18,28 @@ freely, subject to the following restrictions:
 */
 
 using System.IO.Compression;
-using DotRecast.Core;
 
-namespace DotRecast.Detour.Extras.Unity.Astar
+namespace DotRecast.Detour.Extras.Unity.Astar;
+
+internal class DtNodeIndexReader : DtZipBinaryReader
 {
-    class DtNodeIndexReader : DtZipBinaryReader
+    public int[] Read
+    (
+        ZipArchive file,
+        string     filename
+    )
     {
-        public int[] Read(ZipArchive file, string filename)
-        {
-            RcByteBuffer buffer = ToByteBuffer(file, filename);
-            int maxNodeIndex = buffer.GetInt();
-            int[] int2Node = new int[maxNodeIndex + 1];
-            int node = 0;
-            while (buffer.Remaining() > 0)
-            {
-                int index = buffer.GetInt();
-                int2Node[index] = node++;
-            }
+        var buffer       = ToByteBuffer(file, filename);
+        var maxNodeIndex = buffer.GetInt();
+        var int2Node     = new int[maxNodeIndex + 1];
+        var node         = 0;
 
-            return int2Node;
+        while (buffer.Remaining() > 0)
+        {
+            var index = buffer.GetInt();
+            int2Node[index] = node++;
         }
+
+        return int2Node;
     }
 }

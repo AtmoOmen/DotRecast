@@ -19,23 +19,29 @@ freely, subject to the following restrictions:
 
 using DotRecast.Core.Numerics;
 
-namespace DotRecast.Detour.Extras.Unity.Astar
-{
-    public class DtNodeLink2
-    {
-        public readonly long linkID;
-        public readonly int startNode;
-        public readonly int endNode;
-        public readonly RcVec3f clamped1;
-        public readonly RcVec3f clamped2;
+namespace DotRecast.Detour.Extras.Unity.Astar;
 
-        public DtNodeLink2(long linkID, int startNode, int endNode, RcVec3f clamped1, RcVec3f clamped2) : base()
-        {
-            this.linkID = linkID;
-            this.startNode = startNode;
-            this.endNode = endNode;
-            this.clamped1 = clamped1;
-            this.clamped2 = clamped2;
-        }
+public class DtNodeLink2
+{
+    public readonly long    linkID;
+    public readonly int     startNode;
+    public readonly int     endNode;
+    public readonly RcVec3f clamped1;
+    public readonly RcVec3f clamped2;
+
+    public DtNodeLink2
+    (
+        long    linkID,
+        int     startNode,
+        int     endNode,
+        RcVec3f clamped1,
+        RcVec3f clamped2
+    )
+    {
+        this.linkID    = linkID;
+        this.startNode = startNode;
+        this.endNode   = endNode;
+        this.clamped1  = clamped1;
+        this.clamped2  = clamped2;
     }
 }

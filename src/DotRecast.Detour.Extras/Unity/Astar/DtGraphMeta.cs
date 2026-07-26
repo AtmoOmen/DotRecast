@@ -17,28 +17,31 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 */
 
-namespace DotRecast.Detour.Extras.Unity.Astar
+namespace DotRecast.Detour.Extras.Unity.Astar;
+
+public class DtGraphMeta
 {
-    public class DtGraphMeta
-    {
-        public float characterRadius { get; set; }
-        public float contourMaxError { get; set; }
-        public float cellSize { get; set; }
-        public float walkableHeight { get; set; }
-        public float walkableClimb { get; set; }
-        public float maxSlope { get; set; }
-        public float maxEdgeLength { get; set; }
-        public float minRegionSize { get; set; }
+    public float characterRadius { get; set; }
+    public float contourMaxError { get; set; }
+    public float cellSize        { get; set; }
+    public float walkableHeight  { get; set; }
+    public float walkableClimb   { get; set; }
+    public float maxSlope        { get; set; }
+    public float maxEdgeLength   { get; set; }
+    public float minRegionSize   { get; set; }
 
-        /** Size of tile along X axis in voxels */
-        public float tileSizeX { get; set; }
+    /**
+     * Size of tile along X axis in voxels
+     */
+    public float tileSizeX { get; set; }
 
-        /** Size of tile along Z axis in voxels */
-        public float tileSizeZ { get; set; }
+    /**
+     * Size of tile along Z axis in voxels
+     */
+    public float tileSizeZ { get; set; }
 
-        public bool useTiles { get; set; }
-        public DtUnityVector3f rotation { get; set; }
-        public DtUnityVector3f forcedBoundsCenter { get; set; }
-        public DtUnityVector3f forcedBoundsSize { get; set; }
-    }
+    public bool            useTiles           { get; set; }
+    public DtUnityVector3f rotation           { get; set; }
+    public DtUnityVector3f forcedBoundsCenter { get; set; }
+    public DtUnityVector3f forcedBoundsSize   { get; set; }
 }

@@ -17,18 +17,18 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 */
 
-namespace DotRecast.Detour.Extras.Unity.Astar
-{
-    public class DtBVTreeCreator
-    {
-        private readonly DtBVTreeBuilder builder = new DtBVTreeBuilder();
+namespace DotRecast.Detour.Extras.Unity.Astar;
 
-        public void Build(DtGraphMeshData graphData)
-        {
-            foreach (DtMeshData d in graphData.tiles)
-            {
-                builder.Build(d);
-            }
-        }
+public class DtBVTreeCreator
+{
+    private readonly DtBVTreeBuilder builder = new();
+
+    public void Build
+    (
+        DtGraphMeshData graphData
+    )
+    {
+        foreach (var d in graphData.tiles)
+            builder.Build(d);
     }
 }

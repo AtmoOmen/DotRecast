@@ -1,18 +1,19 @@
 using System.Collections.Generic;
 
-namespace DotRecast.Recast.Geom
+namespace DotRecast.Recast.Geom;
+
+public class RcBoundsItemXComparer : IComparer<RcBoundsItem>
 {
-    public class RcBoundsItemXComparer : IComparer<RcBoundsItem>
+    public static readonly RcBoundsItemXComparer Shared = new();
+
+    private RcBoundsItemXComparer()
     {
-        public static readonly RcBoundsItemXComparer Shared = new RcBoundsItemXComparer();
-
-        private RcBoundsItemXComparer()
-        {
-        }
-
-        public int Compare(RcBoundsItem a, RcBoundsItem b)
-        {
-            return a.bmin.X.CompareTo(b.bmin.X);
-        }
     }
+
+    public int Compare
+    (
+        RcBoundsItem a,
+        RcBoundsItem b
+    ) =>
+        a.bmin.X.CompareTo(b.bmin.X);
 }

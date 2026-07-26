@@ -20,68 +20,71 @@ freely, subject to the following restrictions:
 using System;
 using System.Collections.Generic;
 
-namespace DotRecast.Detour.Extras.Unity.Astar
+namespace DotRecast.Detour.Extras.Unity.Astar;
+
+using static DtDetour;
+
+public class DtLinkBuilder
 {
-    using static DtDetour;
-    
-    public class DtLinkBuilder
+    // Process connections and transform them into recast neighbour flags
+    public void Build
+    (
+        int             nodeOffset,
+        DtGraphMeshData graphData,
+        List<int[]>     connections
+    )
     {
-        // Process connections and transform them into recast neighbour flags
-        public void Build(int nodeOffset, DtGraphMeshData graphData, List<int[]> connections)
+        for (var n = 0; n < connections.Count; n++)
         {
-            for (int n = 0; n < connections.Count; n++)
+            var nodeConnections = connections[n];
+            var tile            = graphData.GetTile(n);
+            var node            = graphData.GetNode(n);
+
+            foreach (var connection in nodeConnections)
             {
-                int[] nodeConnections = connections[n];
-                DtMeshData tile = graphData.GetTile(n);
-                DtPoly node = graphData.GetNode(n);
-                foreach (int connection in nodeConnections)
+                var neighbourTile = graphData.GetTile(connection - nodeOffset);
+
+                if (neighbourTile != tile)
+                    BuildExternalLink(tile, node, neighbourTile);
+                else
                 {
-                    DtMeshData neighbourTile = graphData.GetTile(connection - nodeOffset);
-                    if (neighbourTile != tile)
-                    {
-                        BuildExternalLink(tile, node, neighbourTile);
-                    }
-                    else
-                    {
-                        DtPoly neighbour = graphData.GetNode(connection - nodeOffset);
-                        BuildInternalLink(tile, node, neighbourTile, neighbour);
-                    }
+                    var neighbour = graphData.GetNode(connection - nodeOffset);
+                    BuildInternalLink(tile, node, neighbourTile, neighbour);
                 }
             }
         }
+    }
 
-        private void BuildInternalLink(DtMeshData tile, DtPoly node, DtMeshData neighbourTile, DtPoly neighbour)
-        {
-            int edge = DtPolyUtils.FindEdge(node, neighbour, tile, neighbourTile);
-            if (edge >= 0)
-            {
-                node.neis[edge] = neighbour.index + 1;
-            }
-            else
-            {
-                throw new ArgumentException();
-            }
-        }
+    private void BuildInternalLink
+    (
+        DtMeshData tile,
+        DtPoly     node,
+        DtMeshData neighbourTile,
+        DtPoly     neighbour
+    )
+    {
+        var edge = DtPolyUtils.FindEdge(node, neighbour, tile, neighbourTile);
+        if (edge >= 0)
+            node.neis[edge] = neighbour.index + 1;
+        else
+            throw new ArgumentException();
+    }
 
-        // In case of external link to other tiles we must find the direction
-        private void BuildExternalLink(DtMeshData tile, DtPoly node, DtMeshData neighbourTile)
-        {
-            if (neighbourTile.header.bmin.X > tile.header.bmin.X)
-            {
-                node.neis[DtPolyUtils.FindEdge(node, tile, neighbourTile.header.bmin.X, 0)] = DT_EXT_LINK;
-            }
-            else if (neighbourTile.header.bmin.X < tile.header.bmin.X)
-            {
-                node.neis[DtPolyUtils.FindEdge(node, tile, tile.header.bmin.X, 0)] = DT_EXT_LINK | 4;
-            }
-            else if (neighbourTile.header.bmin.Z > tile.header.bmin.Z)
-            {
-                node.neis[DtPolyUtils.FindEdge(node, tile, neighbourTile.header.bmin.Z, 2)] = DT_EXT_LINK | 2;
-            }
-            else
-            {
-                node.neis[DtPolyUtils.FindEdge(node, tile, tile.header.bmin.Z, 2)] = DT_EXT_LINK | 6;
-            }
-        }
+    // In case of external link to other tiles we must find the direction
+    private void BuildExternalLink
+    (
+        DtMeshData tile,
+        DtPoly     node,
+        DtMeshData neighbourTile
+    )
+    {
+        if (neighbourTile.header.bmin.X > tile.header.bmin.X)
+            node.neis[DtPolyUtils.FindEdge(node, tile, neighbourTile.header.bmin.X, 0)] = DT_EXT_LINK;
+        else if (neighbourTile.header.bmin.X < tile.header.bmin.X)
+            node.neis[DtPolyUtils.FindEdge(node, tile, tile.header.bmin.X, 0)] = DT_EXT_LINK | 4;
+        else if (neighbourTile.header.bmin.Z > tile.header.bmin.Z)
+            node.neis[DtPolyUtils.FindEdge(node, tile, neighbourTile.header.bmin.Z, 2)] = DT_EXT_LINK | 2;
+        else
+            node.neis[DtPolyUtils.FindEdge(node, tile, tile.header.bmin.Z, 2)] = DT_EXT_LINK | 6;
     }
 }

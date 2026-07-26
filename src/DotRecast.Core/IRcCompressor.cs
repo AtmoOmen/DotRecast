@@ -18,13 +18,25 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 */
 
-namespace DotRecast.Core
-{
-    public interface IRcCompressor
-    {
-        byte[] Decompress(byte[] data);
-        byte[] Decompress(byte[] buf, int offset, int len, int outputlen);
+namespace DotRecast.Core;
 
-        byte[] Compress(byte[] buf);
-    }
+public interface IRcCompressor
+{
+    byte[] Decompress
+    (
+        byte[] data
+    );
+
+    byte[] Decompress
+    (
+        byte[] buf,
+        int    offset,
+        int    len,
+        int    outputlen
+    );
+
+    byte[] Compress
+    (
+        byte[] buf
+    );
 }

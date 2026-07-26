@@ -20,10 +20,16 @@ freely, subject to the following restrictions:
 using System;
 using DotRecast.Core.Numerics;
 
-namespace DotRecast.Detour
+namespace DotRecast.Detour;
+
+public interface IDtPolygonByCircleConstraint
 {
-    public interface IDtPolygonByCircleConstraint
-    {
-        bool Apply(Span<float> polyVerts, RcVec3f circleCenter, float radius, Span<float> constrainedVerts, out int constrainedVertCount);
-    }
+    bool Apply
+    (
+        Span<float> polyVerts,
+        RcVec3f     circleCenter,
+        float       radius,
+        Span<float> constrainedVerts,
+        out int     constrainedVertCount
+    );
 }

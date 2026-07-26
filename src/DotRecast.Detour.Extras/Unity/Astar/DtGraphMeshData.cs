@@ -17,62 +17,68 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 */
 
-namespace DotRecast.Detour.Extras.Unity.Astar
+namespace DotRecast.Detour.Extras.Unity.Astar;
+
+public class DtGraphMeshData
 {
-    public class DtGraphMeshData
+    public readonly int          tileXCount;
+    public readonly int          tileZCount;
+    public readonly DtMeshData[] tiles;
+
+    public DtGraphMeshData
+    (
+        int          tileXCount,
+        int          tileZCount,
+        DtMeshData[] tiles
+    )
     {
-        public readonly int tileXCount;
-        public readonly int tileZCount;
-        public readonly DtMeshData[] tiles;
+        this.tileXCount = tileXCount;
+        this.tileZCount = tileZCount;
+        this.tiles      = tiles;
+    }
 
-        public DtGraphMeshData(int tileXCount, int tileZCount, DtMeshData[] tiles)
+    public int CountNodes()
+    {
+        var polyCount = 0;
+        foreach (var t in tiles)
+            polyCount += t.header.polyCount;
+
+        return polyCount;
+    }
+
+    public DtPoly GetNode
+    (
+        int node
+    )
+    {
+        var index = 0;
+
+        foreach (var t in tiles)
         {
-            this.tileXCount = tileXCount;
-            this.tileZCount = tileZCount;
-            this.tiles = tiles;
+            if (node - index >= 0 && node - index < t.header.polyCount)
+                return t.polys[node - index];
+
+            index += t.header.polyCount;
         }
 
-        public int CountNodes()
-        {
-            int polyCount = 0;
-            foreach (DtMeshData t in tiles)
-            {
-                polyCount += t.header.polyCount;
-            }
+        return null;
+    }
 
-            return polyCount;
+    public DtMeshData GetTile
+    (
+        int node
+    )
+    {
+        var index = 0;
+
+        foreach (var t in tiles)
+        {
+            if (node - index >= 0 && node - index < t.header.polyCount)
+                return t;
+
+            index += t.header.polyCount;
         }
 
-        public DtPoly GetNode(int node)
-        {
-            int index = 0;
-            foreach (DtMeshData t in tiles)
-            {
-                if (node - index >= 0 && node - index < t.header.polyCount)
-                {
-                    return t.polys[node - index];
-                }
-
-                index += t.header.polyCount;
-            }
-
-            return null;
-        }
-
-        public DtMeshData GetTile(int node)
-        {
-            int index = 0;
-            foreach (DtMeshData t in tiles)
-            {
-                if (node - index >= 0 && node - index < t.header.polyCount)
-                {
-                    return t;
-                }
-
-                index += t.header.polyCount;
-            }
-
-            return null;
-        }
+        return null;
     }
 }

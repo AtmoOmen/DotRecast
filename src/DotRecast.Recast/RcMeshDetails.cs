@@ -511,7 +511,7 @@ namespace DotRecast.Recast
         {
             int nfaces = 0;
             int maxEdges = npts * 10;
-            List<int> edges = new List<int>(64);
+            List<int> edges = [with(64)];
             for (int i = 0, j = nhull - 1; i < nhull; j = i++)
             {
                 AddEdge(ctx, edges, maxEdges, hull[j], hull[i], EV_HULL, EV_UNDEF);
@@ -1036,7 +1036,7 @@ namespace DotRecast.Recast
             // Note: Reads to the compact heightfield are offset by border size (bs)
             // since border size offset is already removed from the polymesh vertices.
 
-            int[] offset = { 0, 0, -1, -1, 0, -1, 1, -1, 1, 0, 1, 1, 0, 1, -1, 1, -1, 0, };
+            int[] offset = [0, 0, -1, -1, 0, -1, 1, -1, 1, 0, 1, 1, 0, 1, -1, 1, -1, 0];
 
             // Find cell closest to a poly vertex
             int startCellX = 0, startCellY = 0, startSpanIndex = -1;
@@ -1084,7 +1084,7 @@ namespace DotRecast.Recast
             array.Add(startCellX);
             array.Add(startCellY);
             array.Add(startSpanIndex);
-            int[] dirs = { 0, 1, 2, 3 };
+            int[] dirs = [0, 1, 2, 3];
             Array.Fill(hp.data, 0, 0, (hp.width * hp.height) - (0));
             // DFS to move to the center. Note that we need a DFS here and can not just move
             // directly towards the center without recording intermediate nodes, even though the polygons
@@ -1335,14 +1335,14 @@ namespace DotRecast.Recast
             int borderSize = mesh.borderSize;
             int heightSearchRadius = (int)Math.Max(1, MathF.Ceiling(mesh.maxEdgeError));
 
-            List<int> edges = new List<int>(64);
-            List<int> tris = new List<int>(512);
-            List<int> arr = new List<int>(512);
-            List<int> samples = new List<int>(512);
-            float[] verts = new float[256 * 3];
-            RcHeightPatch hp = new RcHeightPatch();
-            int nPolyVerts = 0;
-            int maxhw = 0, maxhh = 0;
+            List<int>     edges      = [with(64)];
+            List<int>     tris       = [with(512)];
+            List<int>     arr        = [with(512)];
+            List<int>     samples    = [with(512)];
+            float[]       verts      = new float[256 * 3];
+            RcHeightPatch hp         = new RcHeightPatch();
+            int           nPolyVerts = 0;
+            int           maxhw      = 0, maxhh = 0;
 
             int[] bounds = new int[mesh.npolys * 4];
             float[] poly = new float[nvp * 3];

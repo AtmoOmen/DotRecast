@@ -1,21 +1,22 @@
-namespace DotRecast.Detour.Crowd
+namespace DotRecast.Detour.Crowd;
+
+internal readonly ref struct DtCrowdScopedTimer
 {
-    internal readonly ref struct DtCrowdScopedTimer
+    private readonly DtCrowdTimerLabel _label;
+    private readonly DtCrowdTelemetry  _telemetry;
+
+    internal DtCrowdScopedTimer
+    (
+        DtCrowdTelemetry  telemetry,
+        DtCrowdTimerLabel label
+    )
     {
-        private readonly DtCrowdTimerLabel _label;
-        private readonly DtCrowdTelemetry _telemetry;
+        _telemetry = telemetry;
+        _label     = label;
 
-        internal DtCrowdScopedTimer(DtCrowdTelemetry telemetry, DtCrowdTimerLabel label)
-        {
-            _telemetry = telemetry;
-            _label = label;
-
-            _telemetry.Start(_label);
-        }
-
-        public void Dispose()
-        {
-            _telemetry.Stop(_label);
-        }
+        _telemetry.Start(_label);
     }
+
+    public void Dispose() =>
+        _telemetry.Stop(_label);
 }
