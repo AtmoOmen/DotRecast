@@ -34,6 +34,7 @@ namespace DotRecast.Detour
         public int state; // extra state information. A polyRef can have multiple nodes with different extra info. see DT_MAX_STATES_PER_NODE
         public int flags; // Node flags. A combination of dtNodeFlags.
         public long id; // Polygon ref the node corresponds to.
+        public DtNode next;
 
         public DtNode(int ptr)
         {
