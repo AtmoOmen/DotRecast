@@ -2319,7 +2319,7 @@ public class DtNavMeshQuery
         return status;
     }
 
-    protected DtStatus GetPortalPoints
+    public DtStatus GetPortalPoints
     (
         long        from,
         long        to,
