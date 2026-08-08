@@ -1049,47 +1049,6 @@ public class DtNavMesh
             // Add to linked list.
             link.next          = landPoly.firstLink;
             landPoly.firstLink = tidx;
-
-            // Edge 1: link off-mesh to destination poly for same-tile connections.
-            if (con.side == 0xff)
-            {
-                var endRefs = FindNearestPolyInTile(tile, con.pos[1], ext, out var endNearestPt);
-
-                if (endRefs != 0 && RcMath.Sqr(endNearestPt.X - p[1].X) + RcMath.Sqr(endNearestPt.Z - p[1].Z) <= RcMath.Sqr(con.rad))
-                {
-                    tile.data.verts[poly.verts[1] * 3]       = endNearestPt.X;
-                    tile.data.verts[(poly.verts[1] * 3) + 1] = endNearestPt.Y;
-                    tile.data.verts[(poly.verts[1] * 3) + 2] = endNearestPt.Z;
-
-                    var eidx = AllocLink(tile);
-
-                    if (eidx != DT_NULL_LINK)
-                    {
-                        link           = tile.links[eidx];
-                        link.refs      = endRefs;
-                        link.edge      = 1;
-                        link.side      = 0xff;
-                        link.bmin      = link.bmax = 0;
-                        link.next      = poly.firstLink;
-                        poly.firstLink = eidx;
-
-                        var endLandPolyIdx = DecodePolyIdPoly(endRefs);
-                        var endLandPoly    = tile.data.polys[endLandPolyIdx];
-                        var ridx           = AllocLink(tile);
-
-                        if (ridx != DT_NULL_LINK)
-                        {
-                            link                  = tile.links[ridx];
-                            link.refs             = @base | con.poly;
-                            link.edge             = 0xff;
-                            link.side             = 0xff;
-                            link.bmin             = link.bmax = 0;
-                            link.next             = endLandPoly.firstLink;
-                            endLandPoly.firstLink = ridx;
-                        }
-                    }
-                }
-            }
         }
     }
 
