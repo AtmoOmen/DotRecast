@@ -11,12 +11,13 @@ public class DtJumpLinkBuilder
 {
     private readonly DtEdgeExtractor      edgeExtractor      = new();
     private readonly DtEdgeSamplerFactory edgeSamplerFactory = new();
-    private readonly IDtGroundSampler     groundSampler      = new DtNavMeshGroundSampler();
+    private readonly DtNavMeshGroundSampler groundSampler    = new();
     private readonly DtTrajectorySampler  trajectorySampler  = new();
     private readonly DtJumpSegmentBuilder jumpSegmentBuilder = new();
 
     private readonly List<DtJumpEdge[]>     edges;
     private readonly IList<RcBuilderResult> results;
+    private readonly Dictionary<(RcBuilderResult Result, float AgentRadius, float AgentHeight, float AgentClimb), DtNavMeshQuery> groundQueries = [];
 
     public DtJumpLinkBuilder
     (
@@ -54,10 +55,30 @@ public class DtJumpLinkBuilder
     )
     {
         var es = edgeSamplerFactory.Get(acfg, type, edge);
-        groundSampler.Sample(acfg, result, es);
+        var navMeshQuery = GetGroundQuery(acfg, result);
+        if (navMeshQuery == null)
+            return [];
+
+        groundSampler.Sample(acfg, es, navMeshQuery);
         trajectorySampler.Sample(acfg, result.SolidHeightfiled, es);
         var jumpSegments = jumpSegmentBuilder.Build(acfg, es);
         return BuildJumpLinks(acfg, es, jumpSegments);
+    }
+
+    private DtNavMeshQuery GetGroundQuery
+    (
+        DtJumpLinkBuilderConfig acfg,
+        RcBuilderResult         result
+    )
+    {
+        var key = (result, acfg.agentRadius, acfg.agentHeight, acfg.agentClimb);
+        if (!groundQueries.TryGetValue(key, out var navMeshQuery))
+        {
+            navMeshQuery = groundSampler.CreateQuery(result, acfg.agentRadius, acfg.agentHeight, acfg.agentClimb);
+            groundQueries[key] = navMeshQuery;
+        }
+
+        return navMeshQuery;
     }
 
 

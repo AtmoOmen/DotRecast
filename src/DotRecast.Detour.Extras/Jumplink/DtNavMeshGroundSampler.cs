@@ -13,11 +13,24 @@ public class DtNavMeshGroundSampler : DtAbstractGroundSampler
         DtEdgeSampler           es
     )
     {
-        var navMeshQuery = CreateNavMesh(result, acfg.agentRadius, acfg.agentHeight, acfg.agentClimb);
+        var navMeshQuery = CreateQuery(result, acfg.agentRadius, acfg.agentHeight, acfg.agentClimb);
+        Sample(acfg, es, navMeshQuery);
+    }
+
+    public void Sample
+    (
+        DtJumpLinkBuilderConfig acfg,
+        DtEdgeSampler           es,
+        DtNavMeshQuery          navMeshQuery
+    )
+    {
+        if (navMeshQuery == null)
+            return;
+
         SampleGround(acfg, es, (pt, heightRange, out height) => GetNavMeshHeight(navMeshQuery, pt, acfg.cellSize, heightRange, out height));
     }
 
-    private DtNavMeshQuery CreateNavMesh
+    public DtNavMeshQuery CreateQuery
     (
         RcBuilderResult r,
         float           agentRadius,
