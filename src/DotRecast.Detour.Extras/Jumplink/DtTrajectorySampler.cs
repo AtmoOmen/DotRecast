@@ -45,7 +45,7 @@ public class DtTrajectorySampler
     {
         var cs       = Math.Min(acfg.cellSize, acfg.cellHeight);
         var d        = RcVec.Dist2D(pa, pb) + MathF.Abs(pa.Y - pb.Y);
-        var nsamples = Math.Max(2, (int)MathF.Ceiling(d / cs));
+        var nsamples = Math.Max(2, 2 * (int)MathF.Ceiling(d / cs));
 
         for (var i = 0; i < nsamples; ++i)
         {
