@@ -1,3 +1,5 @@
+using System;
+
 namespace DotRecast.Detour.Extras.Jumplink;
 
 public class DtJumpLinkBuilderConfig
@@ -10,7 +12,10 @@ public class DtJumpLinkBuilderConfig
     public readonly float agentHeight;
     public readonly float startDistance;
     public readonly float endDistance;
-    public readonly float jumpHeight;
+    public readonly float minHorizontalSpeed;
+    public readonly float maxHorizontalSpeed;
+    public readonly float verticalSpeed;
+    public readonly float gravity;
     public readonly float minHeight;
     public readonly float heightRange;
 
@@ -23,22 +28,35 @@ public class DtJumpLinkBuilderConfig
         float agentClimb,
         float groundTolerance,
         float startDistance,
-        float endDistance,
+        float minHorizontalSpeed,
+        float maxHorizontalSpeed,
+        float verticalSpeed,
+        float gravity,
         float minHeight,
-        float maxHeight,
-        float jumpHeight
+        float maxHeight
     )
     {
-        this.cellSize        = cellSize;
-        this.cellHeight      = cellHeight;
-        this.agentRadius     = agentRadius;
-        this.agentClimb      = agentClimb;
-        this.groundTolerance = groundTolerance;
-        this.agentHeight     = agentHeight;
-        this.startDistance   = startDistance;
-        this.endDistance     = endDistance;
-        this.minHeight       = minHeight;
-        heightRange          = maxHeight - minHeight;
-        this.jumpHeight      = jumpHeight;
+        this.cellSize           = cellSize;
+        this.cellHeight         = cellHeight;
+        this.agentRadius        = agentRadius;
+        this.agentHeight        = agentHeight;
+        this.agentClimb         = agentClimb;
+        this.groundTolerance    = groundTolerance;
+        this.startDistance      = startDistance;
+        this.minHorizontalSpeed = minHorizontalSpeed;
+        this.maxHorizontalSpeed = maxHorizontalSpeed;
+        this.verticalSpeed      = verticalSpeed;
+        this.gravity            = gravity;
+        this.minHeight          = minHeight;
+        heightRange             = maxHeight - minHeight;
+        endDistance             = maxHorizontalSpeed * TimeToFall(verticalSpeed, gravity, -minHeight);
     }
+
+    private static float TimeToFall
+    (
+        float verticalSpeed,
+        float gravity,
+        float drop
+    ) =>
+        (verticalSpeed + MathF.Sqrt((verticalSpeed * verticalSpeed) + (2 * gravity * drop))) / gravity;
 }

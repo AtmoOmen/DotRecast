@@ -43,6 +43,14 @@ public class DtTrajectorySampler
         IDtTrajectory           tra
     )
     {
+        var time = tra.TimeToReach(pa, pb);
+        if (time <= 0)
+            return false;
+
+        var speed = RcVec.Dist2D(pa, pb) / time;
+        if (speed < acfg.minHorizontalSpeed || speed > acfg.maxHorizontalSpeed)
+            return false;
+
         var cs       = Math.Min(acfg.cellSize, acfg.cellHeight);
         var d        = RcVec.Dist2D(pa, pb) + MathF.Abs(pa.Y - pb.Y);
         var nsamples = Math.Max(2, 2 * (int)MathF.Ceiling(d / cs));

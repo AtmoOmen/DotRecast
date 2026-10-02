@@ -10,4 +10,10 @@ public interface IDtTrajectory
         RcVec3f end,
         float   u
     );
+
+    float TimeToReach
+    (
+        RcVec3f start,
+        RcVec3f end
+    );
 }

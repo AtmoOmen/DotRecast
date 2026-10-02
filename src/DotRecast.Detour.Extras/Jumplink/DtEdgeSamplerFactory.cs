@@ -12,32 +12,23 @@ public class DtEdgeSamplerFactory
         DtJumpEdge              edge
     )
     {
-        DtEdgeSampler es = null;
+        IDtTrajectory trajectory;
 
         switch (type.Bit)
         {
             case DtJumpLinkType.EDGE_JUMP_BIT:
-                es = InitEdgeJumpSampler(acfg, edge);
+                trajectory = new DtBallisticTrajectory(acfg.verticalSpeed, acfg.gravity);
                 break;
             case DtJumpLinkType.EDGE_CLIMB_DOWN_BIT:
-                es = InitClimbDownSampler(acfg, edge);
+                trajectory = new DtBallisticTrajectory(0, acfg.gravity);
                 break;
             case DtJumpLinkType.EDGE_JUMP_OVER_BIT:
             default:
                 throw new ArgumentException("Unsupported jump type " + type);
         }
 
-        return es;
-    }
+        var es = new DtEdgeSampler(edge, trajectory);
 
-
-    private DtEdgeSampler InitEdgeJumpSampler
-    (
-        DtJumpLinkBuilderConfig acfg,
-        DtJumpEdge              edge
-    )
-    {
-        var es = new DtEdgeSampler(edge, new DtJumpTrajectory(acfg.jumpHeight));
         es.start.height = acfg.agentClimb * 2;
         var offset = new RcVec3f();
         Trans2d(ref offset, es.az, es.ay, new RcVec2f(acfg.startDistance, -acfg.agentClimb));
@@ -63,40 +54,6 @@ public class DtEdgeSamplerFactory
         return es;
     }
 
-    private DtEdgeSampler InitClimbDownSampler
-    (
-        DtJumpLinkBuilderConfig acfg,
-        DtJumpEdge              edge
-    )
-    {
-        var es = new DtEdgeSampler(edge, new DtClimbTrajectory());
-        es.start.height = acfg.agentClimb * 2;
-        var offset = new RcVec3f();
-        Trans2d(ref offset, es.az, es.ay, new RcVec2f(acfg.startDistance, -acfg.agentClimb));
-        Vadd(ref es.start.p, edge.sp, offset);
-        Vadd(ref es.start.q, edge.sq, offset);
-
-        Trans2d(ref offset, es.az, es.ay, new RcVec2f(acfg.endDistance, acfg.minHeight));
-        var end = new DtGroundSegment();
-        end.height = acfg.heightRange;
-        Vadd(ref end.p, edge.sp, offset);
-        Vadd(ref end.q, edge.sq, offset);
-        es.end.Add(end);
-        return es;
-    }
-
-    private void Vadd
-    (
-        float[] dest,
-        float[] v1,
-        float[] v2
-    )
-    {
-        dest[0] = v1[0] + v2[0];
-        dest[1] = v1[1] + v2[1];
-        dest[2] = v1[2] + v2[2];
-    }
-
     private void Vadd
     (
         ref RcVec3f dest,
@@ -107,20 +64,6 @@ public class DtEdgeSamplerFactory
         dest.X = v1.X + v2.X;
         dest.Y = v1.Y + v2.Y;
         dest.Z = v1.Z + v2.Z;
-    }
-
-
-    private void Trans2d
-    (
-        float[] dst,
-        float[] ax,
-        float[] ay,
-        float[] pt
-    )
-    {
-        dst[0] = (ax[0] * pt[0]) + (ay[0] * pt[1]);
-        dst[1] = (ax[1] * pt[0]) + (ay[1] * pt[1]);
-        dst[2] = (ax[2] * pt[0]) + (ay[2] * pt[1]);
     }
 
     private void Trans2d
